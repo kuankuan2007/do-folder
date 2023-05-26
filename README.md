@@ -43,6 +43,8 @@ import doFolder
       + `hash` 比较文件哈希值
       + `content` 比较文件内容
       + `size` 比较文件大小
+    + _参数_ `threaded` 是否线程化 `bool`
+    + _参数_ `threaded` 最大线程数:`int`
     + *返回* 比较结果:`CompareResult`
 
 ### 命令行使用

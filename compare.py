@@ -1,5 +1,6 @@
 import doFolder.main as doFolder
 from typing import Literal,List,Union
+from concurrent.futures import ThreadPoolExecutor
 class RepeatedExecutionError(Exception):
     def __init__(self,message:str):
         self.message=message
@@ -145,20 +146,30 @@ class CompareResult(doFolder._HasName):
     @property
     def differentList(self)->List[Union[FileMissing,FolderMissing,FileDifferent]]:
         return self.fileMissingList+self.folderMissingList+self.fileDifferentList
-def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:Literal["ignore","hash","content","size"]="ignore",root1:Union[doFolder.Folder,None]=None,root2:Union[doFolder.Folder,None]=None)->CompareResult:
-    root1=root1 if root1!=None else folder1
-    root2=root2 if root2!=None else folder2
+def _compareFile(result:CompareResult,file1:doFolder.File,file2:doFolder.File,compareContent:Literal["ignore","hash","content","size"],root1:doFolder.Folder
+            ,root2:doFolder.Folder)->None:
+    if compareContent=="hash" and file1.hash!=file2.hash:
+        result.newDifferent(FileDifferent(file1,file2,root1,root2))
+    elif compareContent=="content" and file1.content!=file2.content:
+        result.newDifferent(FileDifferent(file1,file2,root1,root2))
+    elif compareContent=="size" and file1.size!=file2.size:
+        result.newDifferent(FileDifferent(file1,file2,root1,root2))
+def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:Literal["ignore","hash","content","size"]="ignore",threaded:bool=False,threads:Union[None,int]=None)->CompareResult:
+    threadPool=ThreadPoolExecutor(max_workers=threads) if threaded else None
+    result=_compare(folder1,folder2,folder1,folder2,compareContent,threadPool)
+    assert result
+    if threadPool:threadPool.shutdown(wait=True)
+    return result
+def _compare(folder1:doFolder.Folder,folder2:doFolder.Folder,root1:doFolder.Folder
+            ,root2:doFolder.Folder,compareContent:Literal["ignore","hash","content","size"]="ignore",threadPool:Union[ThreadPoolExecutor,None]=None,parent:Union[CompareResult,None]=None)->Union[CompareResult,None]:
     result=CompareResult(folder1,folder2)
     for file1 in folder1.files:
         file2=folder2.files[file1.name]
         if file2==None:
             result.newDifferent(FileMissing(file1,root1,root2))
-        elif compareContent=="hash" and file1.hash!=file2.hash:
-            result.newDifferent(FileDifferent(file1,file2,root1,root2))
-        elif compareContent=="content" and file1.content!=file2.content:
-            result.newDifferent(FileDifferent(file1,file2,root1,root2))
-        elif compareContent=="size" and file1.size!=file2.size:
-            result.newDifferent(FileDifferent(file1,file2,root1,root2))
+        else:
+            if threadPool:threadPool.submit(_compareFile,result,file1,file2,compareContent,root1,root2)
+            else:_compareFile(result,file1,file2,compareContent,root1,root2)
     for file2 in folder2.files:
         file1=folder1.files[file2.name]
         if file1==None:
@@ -168,9 +179,14 @@ def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:Liter
         if subfolder2==None:
             result.newDifferent(FolderMissing(subfolder1,root1,root2))
         else:
-            result.newDifferent(compare(subfolder1,subfolder2,compareContent,root1,root2))
+            if threadPool:threadPool.submit(_compare,subfolder1,subfolder2,root1,root2,compareContent,threadPool,result)
+            else:_compare(subfolder1,subfolder2,root1,root2,compareContent,threadPool,result)
     for subfolder2 in folder2.subfolder:
         subfolder1=folder1.subfolder[subfolder2.name]
         if subfolder1==None:
             result.newDifferent(FolderMissing(subfolder2,root2,root1))
-    return result
+    if parent:
+        parent.newDifferent(result)
+        return
+    else:
+        return result

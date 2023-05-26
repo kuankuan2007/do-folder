@@ -7,7 +7,7 @@ import datetime
 import sys
 from typing import List,Union,Set
 
-def compare():
+def docompare():
     import argparse
     statueMapping={
         'copied':"[green]copied[/green]",
@@ -20,10 +20,12 @@ def compare():
     argparser.add_argument('folder1',type = str, help = 'The first folder to compare')
     argparser.add_argument('folder2',type = str, help = 'The second folder to compare')
     argparser.add_argument('-c', '--content', type = str, choices=["ignore","hash","content","size"] ,default="ignore", help = 'How to compare the content of the file')
+    argparser.add_argument('-t', '--threaded', action="store_true", help = 'Use multithreaded scanning')
+    argparser.add_argument('-n', '--num', help = 'Maximum number of threads')
     args = argparser.parse_args()
     folder1 = doFolder.Folder(args.folder1)
     folder2 = doFolder.Folder(args.folder2)
-    retsult=comp.compare(folder1, folder2,args.content)
+    retsult=comp.compare(folder1, folder2,args.content,args.threaded,args.num)
     fileMissingList=retsult.fileMissingList
     folderMissingList=retsult.folderMissingList
     fileDifferentList=retsult.fileDifferentList
@@ -274,3 +276,4 @@ A selector is essentially a set, including {}
         result.append(">>>"+command)
         result.append(doCommand(command))
         showTable()
+docompare()
