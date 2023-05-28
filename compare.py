@@ -10,7 +10,7 @@ MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details.
 """
 import doFolder.main as doFolder
-from typing import Literal,List,Union
+from typing import Literal,List,Union,Callable,Dict
 from concurrent.futures import ThreadPoolExecutor
 class RepeatedExecutionError(Exception):
     def __init__(self,message:str):
@@ -77,7 +77,7 @@ class FileDifferent(doFolder._HasName):
         self.file2 = file2
         self.root1 = root1
         self.root2 = root2
-        self.statue:Literal["choice1","choice2","removed","waiting"]="waiting"
+        self.statue:Literal["overwrited","removed","waiting"]="waiting"
     @property
     def path(self)->List[str]:
         return self.file1.path.findRest(self.root1.path)
@@ -88,11 +88,11 @@ class FileDifferent(doFolder._HasName):
         if self.statue!="waiting":
             raise RepeatedExecutionError(f"This file has already been {self.statue}")
         if choice==1:
-            self.statue="choice1"
+            self.statue="overwrited"
             pathto=self.root2.path.adds(self.path)
             self.file1.copy(pathto)
         else:
-            self.statue="choice2"
+            self.statue="overwrited"
             pathto=self.root1.path.adds(self.path)
             self.file2.copy(pathto)
     def remove(self)->None:
@@ -157,22 +157,38 @@ class CompareResult(doFolder._HasName):
     @property
     def differentList(self)->List[Union[FileMissing,FolderMissing,FileDifferent]]:
         return self.fileMissingList+self.folderMissingList+self.fileDifferentList
-def _compareFile(result:CompareResult,file1:doFolder.File,file2:doFolder.File,compareContent:Literal["ignore","hash","content","size"],root1:doFolder.Folder
-            ,root2:doFolder.Folder)->None:
-    if compareContent=="hash" and file1.hash!=file2.hash:
-        result.newDifferent(FileDifferent(file1,file2,root1,root2))
-    elif compareContent=="content" and file1.content!=file2.content:
-        result.newDifferent(FileDifferent(file1,file2,root1,root2))
-    elif compareContent=="size" and file1.size!=file2.size:
-        result.newDifferent(FileDifferent(file1,file2,root1,root2))
-def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:Literal["ignore","hash","content","size"]="ignore",threaded:bool=False,threads:Union[None,int]=None)->CompareResult:
+formatedCompareContent=Callable[[doFolder.File,doFolder.File],bool]
+unformatedCompareContent=Union[Literal["ignore","md5","sha1","sha256","sha512","hash","content","size"],formatedCompareContent]
+def _normalizedCompareContent(compareContent:unformatedCompareContent)->formatedCompareContent:
+    if callable(compareContent):
+        return compareContent
+    elif type(compareContent)==str:
+        ma:Dict[str,formatedCompareContent]={
+            "ignore":lambda f1,f2:True,
+            "hash":lambda f1,f2:f1.hash==f2.hash,
+            "sha1":lambda f1,f2:f1.sha1==f2.sha1,
+            "sha256":lambda f1,f2:f1.sha256==f2.sha256,
+            "sha512":lambda f1,f2:f1.sha512==f2.sha512,
+            "md5":lambda f1,f2:f1.md5==f2.md5,
+            "size":lambda f1,f2:f1.size==f2.size,
+            "content":lambda f1,f2:f1.content==f2.content,
+        }
+        if compareContent in ma:
+            return ma[compareContent]
+        raise ValueError(f"compareContent is not valid. If you want to customize the comparison method, please pass in a comparison function")
+    raise ValueError(f"compareContent must be callable or str,but \"{compareContent}\" is given")
+def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:unformatedCompareContent="ignore",threaded:bool=False,threads:Union[None,int]=None)->CompareResult:
     threadPool=ThreadPoolExecutor(max_workers=threads) if threaded else None
-    result=_compare(folder1,folder2,folder1,folder2,compareContent,threadPool)
+    result=_compare(folder1,folder2,folder1,folder2,_normalizedCompareContent(compareContent),threadPool)
     assert result
     if threadPool:threadPool.shutdown(wait=True)
     return result
+def _compareFile(result:CompareResult,file1:doFolder.File,file2:doFolder.File,compareContent:formatedCompareContent,root1:doFolder.Folder
+            ,root2:doFolder.Folder)->None:
+    if not compareContent(file1,file2):
+        result.newDifferent(FileDifferent(file1,file2,root1,root2))
 def _compare(folder1:doFolder.Folder,folder2:doFolder.Folder,root1:doFolder.Folder
-            ,root2:doFolder.Folder,compareContent:Literal["ignore","hash","content","size"]="ignore",threadPool:Union[ThreadPoolExecutor,None]=None,parent:Union[CompareResult,None]=None)->Union[CompareResult,None]:
+            ,root2:doFolder.Folder,compareContent:formatedCompareContent,threadPool:Union[ThreadPoolExecutor,None]=None,parent:Union[CompareResult,None]=None)->Union[CompareResult,None]:
     result=CompareResult(folder1,folder2)
     for file1 in folder1.files:
         file2=folder2.files[file1.name]

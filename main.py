@@ -203,7 +203,10 @@ class File(_HasName):
         self.mtime=state.st_mtime
         self.ctime=state.st_ctime
         self.atime=state.st_atime
-        self._hash:Union[None,str]=None
+        self._md5:Union[None,str]=None
+        self._sha1:Union[None,str]=None
+        self._sha256:Union[None,str]=None
+        self._sha512:Union[None,str]=None
     @property
     def name(self)->str:
         return self.path.name
@@ -219,11 +222,32 @@ class File(_HasName):
         with self.open("rb") as f:
             return f.read()
     @property
+    def md5(self)->str:
+        if self._md5:
+            return self._md5
+        self._md5=hashlib.md5(self.content).hexdigest()
+        return self._md5
+    @property
+    def sha1(self)->str:
+        if self._sha1:
+            return self._sha1
+        self._sha1=hashlib.sha1(self.content).hexdigest()
+        return self._sha1
+    @property
+    def sha256(self)->str:
+        if self._sha256:
+            return self._sha256
+        self._sha256=hashlib.sha256(self.content).hexdigest()
+        return self._sha256
+    @property
+    def sha512(self)->str:
+        if self._sha512:
+            return self._sha512
+        self._sha512=hashlib.sha512(self.content).hexdigest()
+        return self._sha512
+    @property
     def hash(self)->str:
-        if self._hash:
-            return self._hash
-        self._hash=hashlib.md5(self.content).hexdigest()
-        return self._hash
+        return self.md5
     def remove(self):
         os.remove(self.path)
     def copy(self,path:str):
@@ -232,20 +256,24 @@ class File(_HasName):
         shutil.move(self.path,path)
 class Folder(_HasName):
     """Means a folder on disk"""
-    def __init__(self,path:Union[str,Path],onlisten:bool=False,parent:Union["Folder",None]=None):
+    def __init__(self,path:Union[str,Path],onlisten:bool=False,parent:Union["Folder",None]=None,scan:bool=False):
         if type(path)!=Path:
             path=Path(path)
         self.onlisten=onlisten
         self.path=path
         self.parent=parent
+        self.scaned=scan
+        self.scan=scan
         if self.onlisten:
             self.event_handler = _FolderUpdateHeader(self)
             self.observer = Observer()
             self.observer.schedule(self.event_handler, path=path, recursive=True)
             self.observer.start()
-        self.refresh()
+        if scan:
+            self.refresh()
     def refresh(self):
         """Rebuild all of this folder object"""
+        self.scaned=True
         self.dir:List[str]=os.listdir(self.path)
         self.files:FileList = FileList([])
         self.subfolder:FolderList=FolderList([])
@@ -254,7 +282,7 @@ class Folder(_HasName):
             if os.path.isfile(newPath):
                 self.files.append(File(newPath))
             elif os.path.isdir(newPath):
-                self.subfolder.append(Folder(newPath,parent=self))
+                self.subfolder.append(Folder(newPath,parent=self,scan=self.scan))
     @property
     def name(self)->str:
         return self.path.name
@@ -280,6 +308,8 @@ class Folder(_HasName):
         return None
     def _update(self,path:List[str],eventType:str,eventTarget:Path,isDirectory:bool):
         """Update when something changes"""
+        if not self.scaned:
+            return
         if len(path)>1:
             nextFolder=self[path[0]]
             if type(nextFolder)==Folder:
@@ -301,6 +331,8 @@ class Folder(_HasName):
             if type(target)==File:target.refresh()
             else:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contains file \"{name}\"")
     def __getattribute__(self, name: str) -> Any:
+        if not super().__getattribute__("scaned") and name in ["dir","files","subfolder"]:
+            self.refresh()
         try:
             return super().__getattribute__(name)
         except AttributeError:
@@ -327,7 +359,6 @@ class Folder(_HasName):
         Go through each of these file
         :param callback:The function to call
         """
-            
         for item in self.files:
             callback(item)
         for item in self.subfolder:

@@ -6,6 +6,7 @@ from rich.style import Style
 import datetime
 import sys
 from typing import List,Union,Set
+import os
 
 def docompare():
     import argparse
@@ -13,13 +14,12 @@ def docompare():
         'copied':"[green]copied[/green]",
         "removed":'[red]removed[/red]', 
         'waiting':"[yellow]waiting[/yellow]", 
-        'choice1':"[cyan]choice1[/cyan]",
-        'choice2':"[cyan]choice2[/cyan]"
+        'overwrited':"[cyan]overwrited[/cyan]",
     }
     argparser = argparse.ArgumentParser()
     argparser.add_argument('folder1',type = str, help = 'The first folder to compare')
     argparser.add_argument('folder2',type = str, help = 'The second folder to compare')
-    argparser.add_argument('-c', '--content', type = str, choices=["ignore","hash","content","size"] ,default="ignore", help = 'How to compare the content of the file')
+    argparser.add_argument('-c', '--content', type = str, choices=['ignore', 'md5', 'sha1', 'sha256', 'sha512', 'hash', 'content', 'size'] ,default="ignore", help = 'How to compare the content of the file')
     argparser.add_argument('-t', '--threaded', action="store_true", help = 'Use multithreaded scanning')
     argparser.add_argument('-n', '--num', help = 'Maximum number of threads')
     args = argparser.parse_args()
@@ -213,6 +213,7 @@ A selector is essentially a set, including {}
         return "[red]Unknown Command[/red]"
     def showTable():
         console.clear()
+        os.system("cls")
         nonlocal all
         all.clear()
         if fileMissingList:
@@ -228,7 +229,7 @@ A selector is essentially a set, including {}
             )
             for i in fileMissingList:
                 all.append(i)
-                fileMissingTable.add_row(str(len(all)-1),i.name,i.statue,i.root.path,"/".join(i.path))
+                fileMissingTable.add_row(str(len(all)-1),i.name,statueMapping[i.statue],i.root.path,"/".join(i.path))
             console.print(fileMissingTable)
         if folderMissingList:
             folderMissingTable = Table(
