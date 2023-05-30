@@ -17,6 +17,8 @@ import copy
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler,FileSystemEvent,FileSystemMovedEvent,EVENT_TYPE_CREATED,EVENT_TYPE_DELETED,EVENT_TYPE_MOVED,EVENT_TYPE_MODIFIED
 import hashlib
+import logging
+from concurrent.futures import ThreadPoolExecutor
 
 __all__=["File","Folder","Path"]
 
@@ -264,6 +266,7 @@ class Folder(_HasName):
         self.parent=parent
         self.scaned=scan
         self.scan=scan
+        self.logger=logging.getLogger(self.name)
         if self.onlisten:
             self.event_handler = _FolderUpdateHeader(self)
             self.observer = Observer()
@@ -272,6 +275,7 @@ class Folder(_HasName):
         if scan:
             self.refresh()
     def refresh(self):
+        self.logger.debug("refresh folder contents")
         """Rebuild all of this folder object"""
         self.scaned=True
         self.dir:List[str]=os.listdir(self.path)
@@ -317,6 +321,7 @@ class Folder(_HasName):
                 return
             else:
                 raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contain folder \"{path[0]}\"")
+        self.logger.debug(f"file content update.{eventType}")
         name=path[0]
         if eventType==EVENT_TYPE_CREATED:
             if isDirectory:self.subfolder.append(Folder(eventTarget,parent=self))
@@ -376,10 +381,13 @@ class Folder(_HasName):
         if rootPosition=="last":
             callback(self)
     def remove(self)->None:
+        self.logger.info("Removing folder")
         shutil.rmtree(self.path)
     def move(self,path:str)->None:
+        self.logger.info(f"Moving folder to {path}")
         shutil.move(self.path,path)
     def copy(self,path:str)->None:
+        self.logger.info(f"Copying folder to {path}")
         shutil.copytree(self.path, path)
     def hasSubfolder(self,name:str)->bool:
         """
@@ -399,7 +407,7 @@ class Folder(_HasName):
             if i.name==name:
                 return True
         return False
-    def search(self,condition:List[UnformattedMatching],aim:Literal["file","folder","both"]="both")->SearchResult:
+    def search(self,condition:List[UnformattedMatching],aim:Literal["file","folder","both"]="both",threaded:bool=False,threads:Union[None,int]=None)->SearchResult:
         """
         Search item in the Folder
         :param condition: search conditions which is unformatted
@@ -409,14 +417,18 @@ class Folder(_HasName):
         Tuple[str | re.Pattern[str]| Callable ,int,int|None] the condition , the Minimum repetition , Maximum repetition("None" indicates that there is no limit)
         :param aim: search type
         """
-        return self.match([_formatMatching(i) for i in condition],aim=aim)
-    def match(self,condition:List[FormatedMatching],aim:Literal["file","folder","both"]="both")->SearchResult:
+        self.logger.debug(f"Searching objects in folder.{condition}")
+        threadPool=ThreadPoolExecutor(max_workers=threads) if threaded else None
+        retsult:SearchResult=SearchResult()
+        self._match([_formatMatching(i) for i in condition],retsult,aim=aim,pool=threadPool)
+        if threadPool:threadPool.shutdown(wait=True)
+        return retsult
+    def _match(self,condition:List[FormatedMatching],retsult:SearchResult,aim:Literal["file","folder","both"]="both",pool:Union[ThreadPoolExecutor,None]=None)->None:
         """
         This is the ultimate implementation of the search behavior, but if your criteria are not formatted, consider starting with the "search" function, which will format the criteria and complete the search for you
         :param condition: search conditions which is formatted
         :param aim: search type
         """
-        retsult:SearchResult=SearchResult()
         for i in range(len(condition)):
             if aim!="folder":
                 for j in self.files:
@@ -435,7 +447,8 @@ class Folder(_HasName):
                 restCondition=copy.deepcopy(condition)
                 restCondition[0]=(restCondition[0][0],max(restCondition[0][1]-1,0),None if restCondition[0][2]==None else max(restCondition[0][2]-1,0))
                 if restCondition[0][2]!=None and restCondition[0][2]<=0:del restCondition[0]
-                retsult+=j.match(restCondition,aim=aim)
+                if pool:pool.submit(j._match,restCondition,retsult,aim,pool)
+                else:j._match(restCondition,retsult,aim,pool)
                 if aim=="file":continue
                 k=i
                 while k<len(restCondition):
@@ -446,4 +459,3 @@ class Folder(_HasName):
                     retsult.append(j)
             if condition[i][1]>0:
                 break
-        return retsult
