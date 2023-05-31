@@ -32,7 +32,7 @@ def docompare():
     argparser.add_argument('folder2',type = str, help = 'The second folder to compare')
     argparser.add_argument('-c', '--content', type = str, choices=['ignore', 'md5', 'sha1', 'sha256', 'sha512', 'hash', 'content', 'size'] ,default="ignore", help = 'How to compare the content of the file')
     argparser.add_argument('-t', '--threaded', action="store_true", help = 'Use multithreaded scanning')
-    argparser.add_argument('-n', '--num', help = 'Maximum number of threads')
+    argparser.add_argument('-n', '--num',type = int,default=10, help = 'Maximum number of threads')
     args = argparser.parse_args()
     folder1 = doFolder.Folder(args.folder1)
     folder2 = doFolder.Folder(args.folder2)

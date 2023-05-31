@@ -11,7 +11,7 @@ See the Mulan PSL v2 for more details.
 """
 import os
 import re
-from typing import Any,Union,Callable,Literal,List,Tuple,Iterable,TypeVar,Generic,Protocol
+from typing import Any,Union,Callable,Literal,List,Tuple,Iterable,TypeVar,Generic,IO
 import shutil
 import copy
 from watchdog.observers import Observer
@@ -49,6 +49,14 @@ class _FolderUpdateHeader (FileSystemEventHandler):
         self.target._update(Path(event.src_path).findRest(self.target.path),event.event_type,Path(event.src_path),event.is_directory)
     
 class FolderOrFileNotFoundError(Exception):
+    def __init__(self,reason):
+        self.reason=reason
+    def __str__(self) -> str:
+        return str(self.reason)
+    def __repr__(self) -> str:
+        return str(self.reason)
+
+class FileOrFolderAlreadyExists(Exception):
     def __init__(self,reason):
         self.reason=reason
     def __str__(self) -> str:
@@ -159,7 +167,7 @@ class Path(str):
     @property
     def name(self)->str:
         """The name of the path points to"""
-        return self.partition[-1]
+        return self.partition[-1] if len(self.partition) else self.driver+"/"
     def add(self, value:str):
         """add another dir name after the path"""
         if self[-1]!="/":
@@ -212,7 +220,7 @@ class File(_HasName):
     @property
     def name(self)->str:
         return self.path.name
-    def open(self,*args,**kw):
+    def open(self,*args,**kw)->IO:
         """open the file by function open"""
         return open(self.path,*args,**kw)
     def __str__(self)->str:
@@ -223,6 +231,10 @@ class File(_HasName):
     def content(self)->bytes:
         with self.open("rb") as f:
             return f.read()
+    @content.setter
+    def _setContent(self,content:bytes):
+        with self.open("wb") as f:
+            f.write(content)
     @property
     def md5(self)->str:
         if self._md5:
@@ -389,7 +401,7 @@ class Folder(_HasName):
     def copy(self,path:str)->None:
         self.logger.info(f"Copying folder to {path}")
         shutil.copytree(self.path, path)
-    def hasSubfolder(self,name:str)->bool:
+    def hasSubfolder(self,name:str,recursive:bool=False)->bool:
         """
         Whether to include a subfolder
         :param name:folder name
@@ -397,8 +409,12 @@ class Folder(_HasName):
         for i in self.subfolder:
             if i.name==name:
                 return True
+        if recursive:
+            for i  in self.subfolder:
+                if i.hasSubfolder(name,recursive=recursive):
+                    return True
         return False
-    def hasFile(self,name:str)->bool:
+    def hasFile(self,name:str,recursive:bool=False)->bool:
         """
         Whether to include a file
         :param name:file name
@@ -406,6 +422,10 @@ class Folder(_HasName):
         for i in self.files:
             if i.name==name:
                 return True
+        if recursive:
+            for i  in self.subfolder:
+                if i.hasFile(name,recursive=recursive):
+                    return True
         return False
     def search(self,condition:List[UnformattedMatching],aim:Literal["file","folder","both"]="both",threaded:bool=False,threads:Union[None,int]=None)->SearchResult:
         """
@@ -459,3 +479,21 @@ class Folder(_HasName):
                     retsult.append(j)
             if condition[i][1]>0:
                 break
+    def createFile(self,path:Union[str,Path],content:bytes=b"")->Path:
+        path=Path(os.path.join(self.path, path))
+        if os.path.exists(path):
+            raise FileOrFolderAlreadyExists(f"Can't create file {path} because it already exists")
+        with open(path,"wb") as f:
+            f.write(content)
+        return path
+    def createFolder(self,path:Union[str,Path],content:bytes=b"")->Path:
+        path=Path(os.path.join(self.path, path))
+        if os.path.exists(path):
+            raise FileOrFolderAlreadyExists(f"Can't create folder {path} because it already exists")
+        os.makedirs(path)
+        return path
+    def add(self,aim:Union["File","Folder"],move:bool=False):
+        if move:
+            aim.move(self.path)
+        else:
+            aim.copy(self.path)

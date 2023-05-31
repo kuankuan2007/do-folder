@@ -177,7 +177,7 @@ def _normalizedCompareContent(compareContent:unformatedCompareContent)->formated
             return ma[compareContent]
         raise ValueError(f"compareContent is not valid. If you want to customize the comparison method, please pass in a comparison function")
     raise ValueError(f"compareContent must be callable or str,but \"{compareContent}\" is given")
-def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:unformatedCompareContent="ignore",threaded:bool=False,threads:Union[None,int]=None)->CompareResult:
+def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:unformatedCompareContent="ignore",threaded:bool=False,threads:Union[None,int]=10)->CompareResult:
     threadPool=ThreadPoolExecutor(max_workers=threads) if threaded else None
     result=_compare(folder1,folder2,folder1,folder2,_normalizedCompareContent(compareContent),threadPool)
     assert result
