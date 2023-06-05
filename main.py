@@ -202,7 +202,14 @@ class Path(str):
                 return retsult
             del retsult[0]
         return retsult
-    
+    def getAbsolutePath(self,path)->"Path":
+        """
+        Returns the absolute path of a given file or directory by joining it with the current working directory.
+        :param path: A string representing the relative path to be joined with the current working directory.
+        :return: An object of type "Path" representing the absolute path obtained after joining.
+        :raise ValueError: If input argument 'path' is not a valid string.
+        """
+        return Path(os.path.join(self, path))
 class File(_HasName):
     """
     Represents a file on disk.
@@ -355,7 +362,7 @@ class Folder(_HasName):
         - createFolder(self,path:Union[str,Path])->Path
         Creates a new sub-folder at the specified location.
     """
-    def __init__(self,path:Union[str,Path],onlisten:bool=False,parent:Union["Folder",None]=None,scan:bool=False):
+    def __init__(self,path:Union[str,Path],onlisten:bool=False,parent:Union["Folder",None]=None,scan:bool=False,ignores:Iterable[Union[str,Path]]=[],gitignore:bool=False):
         if type(path)!=Path:
             path=Path(path)
         self.onlisten=onlisten
@@ -369,6 +376,20 @@ class Folder(_HasName):
             self.observer = Observer()
             self.observer.schedule(self.event_handler, path=path, recursive=True)
             self.observer.start()
+        gitignores=[]
+        self.gitignore=gitignore
+        if gitignore:
+            try:
+                with open(path.add(".gitignore"),encoding="utf-8") as f:
+                    gitignores=[i[:-1] for i in set(f.readlines())]
+                    
+            except:
+                gitignores=[]
+        self.ignores:List[Path]=[]
+        for i in set(gitignores+list(ignores)):
+            if type(i)!=Path:
+                i=Path(path.getAbsolutePath(i))
+            self.ignores.append(i)
         if scan:
             self.refresh()
     def refresh(self):
@@ -380,10 +401,12 @@ class Folder(_HasName):
         self.subfolder:FolderList=FolderList([])
         for i in self.dir:
             newPath=self.path.add(i)
+            if newPath in self.ignores:
+                continue
             if os.path.isfile(newPath):
-                self.files.append(File(newPath))
+                self.files.append(File(newPath,parent=self))
             elif os.path.isdir(newPath):
-                self.subfolder.append(Folder(newPath,parent=self,scan=self.scan))
+                self.subfolder.append(Folder(newPath,parent=self,scan=self.scan,ignores=self.ignores,gitignore=self.gitignore))
     @property
     def name(self)->str:
         return self.path.name
@@ -416,7 +439,7 @@ class Folder(_HasName):
             if type(nextFolder)==Folder:
                 nextFolder._update(path[1:],eventType,eventTarget,isDirectory)
                 return
-            else:
+            elif self.path.add(path[0]) not in self.ignores:
                 raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contain folder \"{path[0]}\"")
         self.logger.debug(f"file content update.{eventType}")
         name=path[0]
@@ -427,11 +450,11 @@ class Folder(_HasName):
             target=self[name]
             if type(target)==Folder:self.subfolder.remove(target)
             elif type(target)==File:self.files.remove(target)
-            else:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contain item \"{name}\"")
+            elif self.path.add(name) not in self.ignores:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contain item \"{name}\"")
         if eventType==EVENT_TYPE_MODIFIED:
             target=self[name]
             if type(target)==File:target.refresh()
-            else:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contains file \"{name}\"")
+            elif self.path.add(name) not in self.ignores:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contains file \"{name}\"")
     def __getattribute__(self, name: str) -> Any:
         if not super().__getattribute__("scaned") and name in ["dir","files","subfolder"]:
             self.refresh()
@@ -538,7 +561,7 @@ class Folder(_HasName):
             if aim!="folder":
                 for j in self.files:
                     if not condition[i][0](j):continue
-                    restCondition=copy.deepcopy(condition)
+                    restCondition=copy.deepcopy(condition[i:])
                     restCondition[0]=(restCondition[0][0],max(restCondition[0][1]-1,0),None if restCondition[0][2]==None else max(restCondition[0][2]-1,0))
                     k=i
                     while k<len(restCondition):
@@ -572,7 +595,7 @@ class Folder(_HasName):
         :return: A Path object representing the newly created file.
         :raise FileOrFolderAlreadyExists: If there is already a file or folder at the specified path.
         """
-        path=Path(os.path.join(self.path, path))
+        path=self.path.getAbsolutePath(path)
         if os.path.exists(path):
             raise FileOrFolderAlreadyExists(f"Can't create file {path} because it already exists")
         with open(path,"wb") as f:
@@ -586,7 +609,7 @@ class Folder(_HasName):
         :return: Returns a Path object representing the newly created folder.
         :raise FileOrFolderAlreadyExists: If there is already a file or folder with the same name as `path`.
         """
-        path=Path(os.path.join(self.path, path))
+        path=self.path.getAbsolutePath(path)
         if os.path.exists(path):
             raise FileOrFolderAlreadyExists(f"Can't create folder {path} because it already exists")
         os.makedirs(path)
