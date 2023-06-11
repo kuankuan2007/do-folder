@@ -11,7 +11,7 @@ See the Mulan PSL v2 for more details.
 """
 import os
 import re
-from typing import Any,Union,Callable,Literal,List,Tuple,Iterable,TypeVar,Generic,IO
+from typing import Any,Union,Callable,Literal,List,Tuple,Iterable,TypeVar,Generic,IO,Dict
 import shutil
 import copy
 from watchdog.observers import Observer
@@ -19,12 +19,10 @@ from watchdog.events import FileSystemEventHandler,FileSystemEvent,FileSystemMov
 import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
-
+from specialStr import Path
 __all__=["File","Folder","Path"]
 
-pathTester=re.compile(r"^(?:(?:[a-zA-Z]:)?|//[^/\\\*\?]+)/(?:[^/\\\*\?]+/?)*$")
-driverFinder=re.compile(r"^((?:(?:[a-zA-Z]:)?|//[^/\\\*\?]+))/(?:[^/\\\*\?]+/?)*$")
-pathFinder=re.compile(r"^(?:(?:[a-zA-Z]:)?|//[^/\\\*\?]+)(/(?:[^/\\\*\?]+/?)*)$")
+
 SearchCondition=Union[str,re.Pattern,Callable[[Union["File","Folder"]],bool]]
 FormatedMatching=Tuple[Callable[[Union["File","Folder"]],bool],int,Union[int,None]]
 UnformattedMatching=Union[SearchCondition,Tuple[SearchCondition,int,Union[int,None]]]
@@ -142,74 +140,7 @@ class FolderList(_ObjectListIndexedByName["Folder"]):
         super().__init__(var)
     def __add__(self,var:"FolderList"):
         return FolderList(self.values+var.values)
-class Path(str):
-    """
-    ## Represents a path. It can be used as same as a str, but it has more function about path.
-    Attributes:
-        - driver (str): The drive letter of the path.
-        - path (str): The directory and file name of the path.
-    ## Methods:
-        - partition() -> List[str]: Split the path into list.
-        - name() -> str: Return the name of the file or folder that this path points to.
-        - add(value:str) -> "Path": Add another dir name after the current path and return a new Path object.
-        - adds(value:List[str]) -> "Path": Add multiple dir names after the current path and return a new Path object.
-        - findRest(other:"Path",error:Literal["strict","ignore"]="strict"): Find the same ancestor node between two paths. If error is set to "strict" (default), raise ValueError if other is not exactly parent directory of self. Otherwise, return remaining directories in self's partition after finding different ancestor with other's partition.
-    """
-    def __new__(cls, value):
-        var=str(value)
-        if var.startswith("."):
-            var=os.path.abspath(var)
-        var=var.replace("\\","/")
-        if pathTester.match(var)==None:
-            raise ValueError(f"\"{var}\" does not appear to be a legal path")
-        return super().__new__(cls, var)
-    def __init__(self, value):
-        super().__init__()
-        self.driver:str=driverFinder.findall(self)[0]
-        self.path:str=pathFinder.findall(self)[0]
-    @property
-    def partition(self)->List[str]:
-        """split the path into list"""
-        li=self.path.split("/")
-        while "" in li:
-            li.remove("")
-        return li
-    @property
-    def name(self)->str:
-        """The name of the path points to"""
-        return self.partition[-1] if len(self.partition) else self.driver+"/"
-    def add(self, value:str):
-        """add another dir name after the path"""
-        if self[-1]!="/":
-            return Path(self+"/"+value)
-        return Path(self+value)
-    def adds(self, value:List[str])->"Path":
-        new=copy.deepcopy(self)
-        for i in value:
-            new=new.add(i)
-        return new
-    def findRest(self,other:"Path",error:Literal["strict","ignore"]="strict"):
-        """Find the same ancestor node of them
-        :param error:"strict" means if other path not exactly the parent directory of this path, raise ValueError.
-        """
-        if error=="strict" and self.driver!=other.driver:
-            raise ValueError(f"\"{self}\" and \"{other}\" has different driver")
-        retsult=copy.deepcopy(self.partition)
-        for i in other.partition:
-            if not len(retsult) or retsult[0]!=i:
-                if error=="strict":
-                    raise ValueError(f"\"{other}\" is not the ancestor folder of {self}")
-                return retsult
-            del retsult[0]
-        return retsult
-    def getAbsolutePath(self,path)->"Path":
-        """
-        Returns the absolute path of a given file or directory by joining it with the current working directory.
-        :param path: A string representing the relative path to be joined with the current working directory.
-        :return: An object of type "Path" representing the absolute path obtained after joining.
-        :raise ValueError: If input argument 'path' is not a valid string.
-        """
-        return Path(os.path.join(self, path))
+
 class File(_HasName):
     """
     Represents a file on disk.
