@@ -11,7 +11,8 @@ See the Mulan PSL v2 for more details.
 """
 import doFolder.main as doFolder
 from typing import Literal,List,Union,Callable,Dict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor,_base
+import time
 class RepeatedExecutionError(Exception):
     def __init__(self,message:str):
         self.message=message
@@ -179,16 +180,19 @@ def _normalizedCompareContent(compareContent:unformatedCompareContent)->formated
     raise ValueError(f"compareContent must be callable or str,but \"{compareContent}\" is given")
 def compare(folder1:doFolder.Folder,folder2:doFolder.Folder,compareContent:unformatedCompareContent="ignore",threaded:bool=False,threads:Union[None,int]=10)->CompareResult:
     threadPool=ThreadPoolExecutor(max_workers=threads) if threaded else None
-    result=_compare(folder1,folder2,folder1,folder2,_normalizedCompareContent(compareContent),threadPool)
-    assert result
-    if threadPool:threadPool.shutdown(wait=True)
+    waitlist:List[_base.Future]=[]
+    result=_compare(folder1,folder2,folder1,folder2,_normalizedCompareContent(compareContent),threadPool,None,waitlist)
+    for i in waitlist:
+        while not i.done():
+            time.sleep(0.1)
     return result
 def _compareFile(result:CompareResult,file1:doFolder.File,file2:doFolder.File,compareContent:formatedCompareContent,root1:doFolder.Folder
             ,root2:doFolder.Folder)->None:
     if not compareContent(file1,file2):
         result.newDifferent(FileDifferent(file1,file2,root1,root2))
 def _compare(folder1:doFolder.Folder,folder2:doFolder.Folder,root1:doFolder.Folder
-            ,root2:doFolder.Folder,compareContent:formatedCompareContent,threadPool:Union[ThreadPoolExecutor,None]=None,parent:Union[CompareResult,None]=None)->Union[CompareResult,None]:
+            ,root2:doFolder.Folder,compareContent:formatedCompareContent,threadPool:Union[ThreadPoolExecutor,None]=None,parent:Union[CompareResult,None]=None,
+            waitlist:List[_base.Future]=[])->CompareResult:
     result=CompareResult(folder1,folder2)
     for file1 in folder1.files:
         file2=folder2.files[file1.name]
@@ -206,14 +210,12 @@ def _compare(folder1:doFolder.Folder,folder2:doFolder.Folder,root1:doFolder.Fold
         if subfolder2==None:
             result.newDifferent(FolderMissing(subfolder1,root1,root2))
         else:
-            if threadPool:threadPool.submit(_compare,subfolder1,subfolder2,root1,root2,compareContent,threadPool,result)
-            else:_compare(subfolder1,subfolder2,root1,root2,compareContent,threadPool,result)
+            if threadPool:waitlist.append(threadPool.submit(_compare,subfolder1,subfolder2,root1,root2,compareContent,threadPool,result,waitlist))
+            else:_compare(subfolder1,subfolder2,root1,root2,compareContent,threadPool,result,waitlist)
     for subfolder2 in folder2.subfolder:
         subfolder1=folder1.subfolder[subfolder2.name]
         if subfolder1==None:
             result.newDifferent(FolderMissing(subfolder2,root2,root1))
     if parent:
         parent.newDifferent(result)
-        return
-    else:
-        return result
+    return result

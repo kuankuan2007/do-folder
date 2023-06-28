@@ -20,6 +20,10 @@ import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from specialStr import Path
+import base64
+import json
+from concurrent.futures import ThreadPoolExecutor,_base
+import time
 __all__=["File","Folder","Path"]
 
 
@@ -478,11 +482,15 @@ class Folder(_HasName):
         """
         self.logger.debug(f"Searching objects in folder.{condition}")
         threadPool=ThreadPoolExecutor(max_workers=threads) if threaded else None
+        waitlist:List[_base.Future]=[]
         retsult:SearchResult=SearchResult()
-        self._match([_formatMatching(i) for i in condition],retsult,aim=aim,pool=threadPool)
-        if threadPool:threadPool.shutdown(wait=True)
+        
+        self._match([_formatMatching(i) for i in condition],retsult,aim=aim,pool=threadPool,waitlist=waitlist)
+        for i in waitlist:
+            while not i.done():
+                time.sleep(0.1)
         return retsult
-    def _match(self,condition:List[FormatedMatching],retsult:SearchResult,aim:Literal["file","folder","both"]="both",pool:Union[ThreadPoolExecutor,None]=None)->None:
+    def _match(self,condition:List[FormatedMatching],retsult:SearchResult,aim:Literal["file","folder","both"]="both",pool:Union[ThreadPoolExecutor,None]=None,waitlist:List[_base.Future]=[])->None:
         """
         This is the ultimate implementation of the search behavior, but if your criteria are not formatted, consider starting with the "search" function, which will format the criteria and complete the search for you
         :param condition: search conditions which is formatted
@@ -506,7 +514,7 @@ class Folder(_HasName):
                 restCondition=copy.deepcopy(condition)
                 restCondition[0]=(restCondition[0][0],max(restCondition[0][1]-1,0),None if restCondition[0][2]==None else max(restCondition[0][2]-1,0))
                 if restCondition[0][2]!=None and restCondition[0][2]<=0:del restCondition[0]
-                if pool:pool.submit(j._match,restCondition,retsult,aim,pool)
+                if pool:waitlist.append(pool.submit(j._match,restCondition,retsult,aim,pool))
                 else:j._match(restCondition,retsult,aim,pool)
                 if aim=="file":continue
                 k=i
@@ -551,3 +559,43 @@ class Folder(_HasName):
             aim.move(self.path)
         else:
             aim.copy(self.path)
+    def _normalizedToDictIncludeFiles(self,includeFiles:Union[Literal["info","base64","bytes","keep"],Callable[[File],Any]])->Callable[[File],Any]:
+        if callable(includeFiles):
+            return includeFiles
+        ma:Dict[str,Callable[[File],Any]]={
+            "base64":lambda x:{
+                "name":x.name,
+                "base64":base64.b64encode(x.content).decode(),    
+            },
+            "info":lambda x:{
+                "name":x.name,
+                "size":x.size,
+                "dev":x.dev,
+                "uid":x.uid,
+                "gid":x.gid,
+                "ctime":x.ctime,
+                "atime":x.atime,
+                "mtime":x.mtime,
+                "ino":x.ino,
+                "mode":x.mode
+            },
+            "bytes":lambda x:{
+                "name":x.name,
+                "bytes":x.content
+            },
+            "keep":lambda x:x
+        }
+        if includeFiles in ma:
+            return ma[includeFiles]
+        raise ValueError(f"Invalid value for includeFiles: {includeFiles}")
+    def toDict(self,includeFiles:Union[Literal["ignore","info","base64","bytes","keep"],Callable[[File],Any]]="keep")->Dict[str,Any]:
+        result={}
+        result["type"]="Folder"
+        result["name"]=self.name
+        if includeFiles!="ignore":
+            includeFiles=self._normalizedToDictIncludeFiles(includeFiles)
+            result["files"]=[includeFiles(i) for i in self.files]
+        result["subfolder"]={i.name:i.toDict(includeFiles) for i in self.subfolder}
+        return result
+    def toJson(self,**kw)->str:
+        return json.dumps(self.toDict("base64"),**kw)
