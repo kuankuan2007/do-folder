@@ -24,6 +24,7 @@ import base64
 import json
 from concurrent.futures import ThreadPoolExecutor,_base
 import time
+
 __all__=["File","Folder","Path"]
 
 
@@ -32,6 +33,15 @@ FormatedMatching=Tuple[Callable[[Union["File","Folder"]],bool],int,Union[int,Non
 UnformattedMatching=Union[SearchCondition,Tuple[SearchCondition,int,Union[int,None]]]
 _T=TypeVar("_T",bound="_HasName")
 _U=TypeVar("_U")
+class RuntimeError(Exception):
+    def __init__(self, error:BaseException) -> None:
+        super().__init__(str(error))
+        self.error=error
+def tryRun(fn:Callable[...,_U])->Union[_U,RuntimeError]:
+    try:
+        return fn()
+    except BaseException as e:
+        return RuntimeError(e)
 class _HasName(Generic[_T]):
     name: str
 
@@ -127,6 +137,19 @@ class _ObjectListIndexedByName(Generic[_T]):
             raise AttributeError(f"name {key} is neither attribute or name of values")
     def __iter__(self):
         return self.values.__iter__()
+    def getSubAttribute(self,key:str)->List:
+        retsult=[]
+        for i in self:
+            if type(tryRun(lambda:i.__getattribute__(key)))==RuntimeError:
+                raise AttributeError(f"Not all attributes named \"{key}\" of the list are existent")
+            retsult.append(i.__getattribute__(key))
+        return retsult
+    def callSubAttribute(self,fn:str,*args,**kw)->Any:
+        li=self.getSubAttribute(fn)
+        for i in li:
+            if not callable(i):
+                raise AttributeError(f"Not all attributes named \"{fn}\" of the list are callable")
+        return [tryRun(lambda:i(*args,**kw)) for i in li]
 
 class SearchResult(_ObjectListIndexedByName[Union["File","Folder"]]):
     def __init__(self,var:Iterable[Union["File","Folder"]]=[],match:Union[FormatedMatching,None]=None):
@@ -134,6 +157,10 @@ class SearchResult(_ObjectListIndexedByName[Union["File","Folder"]]):
         self.match=match
     def __add__(self,var:"SearchResult"):
         return SearchResult(self.values+var.values,match=self.match)
+    def remove(self) -> None:
+        self.callSubAttribute("remove")
+    def copy(self,path:Union[str,Path]) -> None:
+        self.callSubAttribute("copy",path)
 class FileList(_ObjectListIndexedByName["File"]):
     def __init__(self,var:Iterable["File"]=[]):
         super().__init__(var)
