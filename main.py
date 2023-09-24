@@ -161,6 +161,12 @@ class SearchResult(_ObjectListIndexedByName[Union["File","Folder"]]):
         self.callSubAttribute("remove")
     def copy(self,path:Union[str,Path]) -> None:
         self.callSubAttribute("copy",path)
+    def move(self,path:Union[str,Path]) -> None:
+        self.callSubAttribute("move",path)
+    def rename(self,newName:str) -> None:
+        li=self.getSubAttribute("rename")
+        for index,i in enumerate(li):
+            i(newName.format(index,i=index,index=index))
 class FileList(_ObjectListIndexedByName["File"]):
     def __init__(self,var:Iterable["File"]=[]):
         super().__init__(var)
@@ -171,8 +177,13 @@ class FolderList(_ObjectListIndexedByName["Folder"]):
         super().__init__(var)
     def __add__(self,var:"FolderList"):
         return FolderList(self.values+var.values)
-
-class File(_HasName):
+class FileSystemNode(_HasName):
+    path:Path
+    copy:Callable[[],None]
+    remove:Callable[[],None]
+    move:Callable[[str],None]
+    rename:Callable[[str],None]
+class File(FileSystemNode):
     """
     Represents a file on disk.
     ## Attributes:
@@ -205,6 +216,8 @@ class File(_HasName):
         Returns string representation "<File \"{name}\">".
         - __repr__(self)->str
         Returns string representation "<File \"{name}\">".
+        - rename(self,newName:str)->None
+            Rename the file
     """
     def __init__(self,path:Union[str,Path],parent:Union["Folder",None]=None):
         if type(path)!=Path:
@@ -279,7 +292,16 @@ class File(_HasName):
         shutil.copy(self.path,path)
     def move(self,path:str):
         shutil.move(self.path,path)
-class Folder(_HasName):
+    def rename(self,newName:str)->None:
+        splitPath=self.path.spitPath(False)
+        while len(splitPath) and splitPath[-1]=="":
+            splitPath=splitPath[:-1]
+        if not len(splitPath):
+            raise ValueError("The path has no location to rename")
+        splitPath[-1]=newName
+        newPath:Path=Path(self.path.driver+"/".join(splitPath))
+        os.rename(self.path,newPath)
+class Folder(FileSystemNode):
     """
     Represents a folder on disk.
     ## Attributes:
@@ -311,6 +333,8 @@ class Folder(_HasName):
         Removes current folder and all its contents
         - move(self,path:str)->None
         Moves current folder to specified path
+        - rename(self,newName:str)->None
+        Rename the folder
         - copy(self,path:str)->None:
         Copies current folder to specified path
         - hasSubfolder(self,name:str,recursive:bool=False)->bool:
@@ -392,6 +416,13 @@ class Folder(_HasName):
             if item.name==key:
                 return item
         return None
+    def __travel(self):
+        for i in self.files:
+            yield i
+        for i in self.subfolder:
+            yield i
+    def __iter__(self):
+        return self.__travel()
     def _update(self,path:List[str],eventType:str,eventTarget:Path,isDirectory:bool):
         """Update when something changes"""
         if not self.scaned:
@@ -471,6 +502,15 @@ class Folder(_HasName):
     def copy(self,path:str)->None:
         self.logger.info(f"Copying folder to {path}")
         shutil.copytree(self.path, path)
+    def rename(self,newName:str)->None:
+        splitPath=self.path.spitPath(False)
+        while len(splitPath) and splitPath[-1]=="":
+            splitPath=splitPath[:-1]
+        if not len(splitPath):
+            raise ValueError("The path has no location to rename")
+        splitPath[-1]=newName
+        newPath:Path=Path(self.path.driver+"/".join(splitPath))
+        os.rename(self.path,newPath)
     def hasSubfolder(self,name:str,recursive:bool=False)->bool:
         """
         Whether to include a subfolder
