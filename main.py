@@ -11,11 +11,11 @@ See the Mulan PSL v2 for more details.
 """
 import os
 import re
-from typing import Any,Union,Callable,Literal,List,Tuple,Iterable,TypeVar,Generic,IO,Dict
+from typing import Any,Union,Callable,Literal,List,Tuple,Iterable,TypeVar,Generic,IO,Dict,overload,Set
 import shutil
 import copy
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler,FileSystemEvent,FileSystemMovedEvent,EVENT_TYPE_CREATED,EVENT_TYPE_DELETED,EVENT_TYPE_MOVED,EVENT_TYPE_MODIFIED
+from watchdog.events import FileSystemEventHandler,FileSystemEvent,FileSystemMovedEvent,EVENT_TYPE_CREATED,EVENT_TYPE_DELETED,EVENT_TYPE_MODIFIED
 import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +27,7 @@ import time
 
 __all__=["File","Folder","Path"]
 
+EVENT_TYPES=Literal["created","deleted","modified"]
 
 SearchCondition=Union[str,re.Pattern,Callable[[Union["File","Folder"]],bool]]
 FormatedMatching=Tuple[Callable[[Union["File","Folder"]],bool],int,Union[int,None]]
@@ -37,6 +38,11 @@ class RuntimeError(Exception):
     def __init__(self, error:BaseException) -> None:
         super().__init__(str(error))
         self.error=error
+class DisabledError(Exception):
+    pass
+class UnknownError(Exception):
+    def __init__(self) -> None:
+        super().__init__('Sorry, an unknown error has occurred. This could have been due to an oversight by the author. If you feel the same way, open an issue on Gitee(https://gitee.com/kuankuan2007/do-folder) or Github(https://github.com/kuankuan2007/do-folder)') 
 def tryRun(fn:Callable[...,_U])->Union[_U,RuntimeError]:
     try:
         return fn()
@@ -44,7 +50,6 @@ def tryRun(fn:Callable[...,_U])->Union[_U,RuntimeError]:
         return RuntimeError(e)
 class _HasName(Generic[_T]):
     name: str
-
 class _FolderUpdateHeader (FileSystemEventHandler):
     def __init__(self,target:"Folder"):
         self.target=target
@@ -220,11 +225,14 @@ class File(FileSystemNode):
             Rename the file
     """
     def __init__(self,path:Union[str,Path],parent:Union["Folder",None]=None):
+        self._active=True
         if type(path)!=Path:
             path=Path(path)
         self.path = path
         self.parent = parent
         self.refresh()
+    def deactivate(self):
+        self._active=False
     def refresh(self):
         """Rebuild all of this file object"""
         state=os.stat(self.path)
@@ -288,10 +296,15 @@ class File(FileSystemNode):
         return self.md5
     def remove(self):
         os.remove(self.path)
+        if self.parent:
+            self.parent._updateRemoveSubItem(self.name)
+        
     def copy(self,path:str):
         shutil.copy(self.path,path)
     def move(self,path:str):
         shutil.move(self.path,path)
+        if self.parent:
+            self.parent._updateRemoveSubItem(self.name)
     def rename(self,newName:str)->None:
         splitPath=self.path.spitPath(False)
         while len(splitPath) and splitPath[-1]=="":
@@ -301,6 +314,12 @@ class File(FileSystemNode):
         splitPath[-1]=newName
         newPath:Path=Path(self.path.driver+"/".join(splitPath))
         os.rename(self.path,newPath)
+        if self.parent:
+            self.parent._updateRenameSubItem(self.name,newName)
+    def __getattribute__(self, __name: str) -> Any:
+        if not super().__getattribute__("_active") and __name not in ["_active","path","parent","name"]:
+            raise DisabledError('Can not get item from disabled file. You abandoned me, and then you flirt with me like this')
+        return super().__getattribute__(__name)
 class Folder(FileSystemNode):
     """
     Represents a folder on disk.
@@ -349,6 +368,7 @@ class Folder(FileSystemNode):
         Creates a new sub-folder at the specified location.
     """
     def __init__(self,path:Union[str,Path],onlisten:bool=False,parent:Union["Folder",None]=None,scan:bool=False,ignores:Iterable[Union[str,Path]]=[],gitignore:bool=False):
+        self._active=True
         if type(path)!=Path:
             path=Path(path)
         self.onlisten=onlisten
@@ -378,6 +398,8 @@ class Folder(FileSystemNode):
             self.ignores.append(i)
         if scan:
             self.refresh()
+    def deactivate(self):
+        self._active=False
     def refresh(self):
         self.logger.debug("refresh folder contents")
         """Rebuild all of this folder object"""
@@ -390,9 +412,13 @@ class Folder(FileSystemNode):
             if newPath in self.ignores:
                 continue
             if os.path.isfile(newPath):
-                self.files.append(File(newPath,parent=self))
+                self.files.append(self._newFile(newPath))
             elif os.path.isdir(newPath):
-                self.subfolder.append(Folder(newPath,parent=self,scan=self.scan,ignores=self.ignores,gitignore=self.gitignore))
+                self.subfolder.append(self._newSubFolder(newPath))
+    def _newFile(self,path:Path)->File:
+        return File(path,parent=self)
+    def _newSubFolder(self,path:Path)->"Folder":
+        return Folder(path,parent=self,scan=self.scan,ignores=self.ignores,gitignore=self.gitignore)
     @property
     def name(self)->str:
         return self.path.name
@@ -409,6 +435,8 @@ class Folder(FileSystemNode):
             return item in self.files
         return False
     def __getitem__(self,key)->Union["File","Folder",None]:
+        if not self._active and key not in ["path","name"]:
+            raise DisabledError('Can not get item from disabled folder. You abandoned me, and then you flirt with me like this')
         for item in self.subfolder:
             if item.name==key:
                 return item
@@ -431,25 +459,25 @@ class Folder(FileSystemNode):
             nextFolder=self[path[0]]
             if type(nextFolder)==Folder:
                 nextFolder._update(path[1:],eventType,eventTarget,isDirectory)
-                return
-            elif self.path.add(path[0]) not in self.ignores:
-                raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contain folder \"{path[0]}\"")
+            return
         self.logger.debug(f"file content update.{eventType}")
         name=path[0]
         if eventType==EVENT_TYPE_CREATED:
-            if isDirectory:self.subfolder.append(Folder(eventTarget,parent=self))
-            else:self.files.append(File(eventTarget,parent=self))
+            if name in self: return
+            if name in self.ignores: return
+            if isDirectory:self.subfolder.append(self._newSubFolder(eventTarget))
+            else:self.files.append(self._newFile(eventTarget))
         if eventType==EVENT_TYPE_DELETED:
             target=self[name]
             if type(target)==Folder:self.subfolder.remove(target)
             elif type(target)==File:self.files.remove(target)
-            elif self.path.add(name) not in self.ignores:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contain item \"{name}\"")
         if eventType==EVENT_TYPE_MODIFIED:
             target=self[name]
             if type(target)==File:target.refresh()
-            elif self.path.add(name) not in self.ignores:raise FolderOrFileNotFoundError(f"Directory \"{self.path}\" does not contains file \"{name}\"")
     def __getattribute__(self, name: str) -> Any:
-        if not super().__getattribute__("scaned") and name in ["dir","files","subfolder"]:
+        if not super().__getattribute__('_active')  and name not in ["path","name","parent","_active"]:
+            raise DisabledError('Can not get attributes from disabled folder. You abandoned me, and then you flirt with me like this')
+        if not super().__getattribute__("scaned"):
             self.refresh()
         try:
             return super().__getattribute__(name)
@@ -496,6 +524,17 @@ class Folder(FileSystemNode):
     def remove(self)->None:
         self.logger.info("Removing folder")
         shutil.rmtree(self.path)
+        if self.parent:
+            self.parent._updateRemoveSubItem(self.name)
+    def _updateRemoveSubItem(self,name:str):
+        item=self[name]
+        if item==None:
+            return
+        elif isinstance(item,File):
+            self.files.remove(item)
+        elif isinstance(item,Folder):
+            self.subfolder.remove(item)
+        item.deactivate()
     def move(self,path:str)->None:
         self.logger.info(f"Moving folder to {path}")
         shutil.move(self.path,path)
@@ -511,6 +550,19 @@ class Folder(FileSystemNode):
         splitPath[-1]=newName
         newPath:Path=Path(self.path.driver+"/".join(splitPath))
         os.rename(self.path,newPath)
+        if self.parent:
+            self.parent._updateRenameSubItem(self.name,newName)
+    def _updateRenameSubItem(self,name:str,newName: str):
+        item=self[name]
+        if item==None:
+            return
+        elif isinstance(item,File):
+            self.files.remove(item)
+            self.files.append(self._newFile(self.path.add(newName)))
+        elif isinstance(item,Folder):
+            self.subfolder.remove(item)
+            self.subfolder.append(self._newSubFolder(self.path.add(newName)))
+        item.deactivate()
     def hasSubfolder(self,name:str,recursive:bool=False)->bool:
         """
         Whether to include a subfolder
@@ -593,7 +645,49 @@ class Folder(FileSystemNode):
                     retsult.append(j)
             if condition[i][1]>0:
                 break
-    def createFile(self,path:Union[str,Path],content:bytes=b"")->Path:
+    @overload
+    def _create(self,name: str,aimType:Literal['File'],content:Union[None,bytes]=None)->File:...
+    @overload
+    def _create(self,name: str,aimType:Literal['Folder'])->"Folder":...
+    def _create(self,name:str,aimType:Literal['File','Folder']='File',content:Union[None,bytes]=None):
+        fullpath=self.path.add(name)
+        if os.path.exists(fullpath):
+            raise FileOrFolderAlreadyExists("We can't create a file for that folder because it already exists")
+        if aimType=="File":
+            with open(fullpath,'wb') as f:
+                if content:
+                    f.write(content)
+            aim= self._newFile(fullpath)
+            self.files.append(aim)
+            return aim
+        else:
+            os.mkdir(fullpath)
+            aim= self._newSubFolder(fullpath)
+            self.subfolder.append(aim)
+            return aim
+    @overload
+    def _deepCreate(self,paths: List[str],aimType:Literal['File'],content:Union[None,bytes]=None)->File:...
+    @overload
+    def _deepCreate(self,paths: List[str],aimType:Literal['Folder'])->"Folder":...
+    def _deepCreate(self,paths: List[str],aimType:Literal['File','Folder']='File',content:Union[None,bytes]=None):
+        if len(paths)<=0:
+            raise UnknownError()
+        if (len(paths)==1):
+            if aimType=="File":
+                return self._create(paths[0],aimType,content)
+            else:
+                return self._create(paths[0],aimType)
+        else:
+            nextFolder=self[paths[0]]
+            if isinstance(nextFolder,File):
+                raise FileOrFolderAlreadyExists(f"The file {paths[0]} already exists in {self.path}, so we cannot create folder there")
+            if nextFolder==None:
+                nextFolder=self._create(paths[0],"Folder")
+            if aimType=="File":
+                return nextFolder._deepCreate(paths[1:],aimType,content)
+            else:
+                return nextFolder._deepCreate(paths[1:],aimType)
+    def createFile(self,path:Union[str,Path],content:bytes=b"")->File:
         """
         Create a new file at the specified path with the given content.
         :param path: The path where the file will be created. Can be either a string or a Path object.
@@ -602,24 +696,18 @@ class Folder(FileSystemNode):
         :raise FileOrFolderAlreadyExists: If there is already a file or folder at the specified path.
         """
         path=self.path.getAbsolutePath(path)
-        if os.path.exists(path):
-            raise FileOrFolderAlreadyExists(f"Can't create file {path} because it already exists")
-        with open(path,"wb") as f:
-            f.write(content)
-        return path
-    def createFolder(self,path:Union[str,Path],content:bytes=b"")->Path:
+        paths=path.findRest(self.path)
+        return self._deepCreate(paths,"File",content)
+    def createFolder(self,path:Union[str,Path])->"Folder":
         """
         Create a new folder at the specified path.
         :param path: The path where the new folder will be created. Can be either a string or a Path object.
-        :param content: Optional parameter specifying the initial content of the folder. Default is an empty bytes object.
         :return: Returns a Path object representing the newly created folder.
         :raise FileOrFolderAlreadyExists: If there is already a file or folder with the same name as `path`.
         """
         path=self.path.getAbsolutePath(path)
-        if os.path.exists(path):
-            raise FileOrFolderAlreadyExists(f"Can't create folder {path} because it already exists")
-        os.makedirs(path)
-        return path
+        paths=path.findRest(self.path)
+        return self._deepCreate(paths,"Folder")
     def add(self,aim:Union["File","Folder"],move:bool=False):
         "add a file or folder to this folder"
         if move:
