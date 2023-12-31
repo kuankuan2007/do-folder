@@ -29,6 +29,9 @@ import doFolder
     + _参数_ `threaded` 是否线程化 `bool`
     + _参数_ `threaded` 最大线程数:`int`
     + _返回_ 搜索结果:`SearchResult`
+  + _方法_ `createFile` 创建文件
+    + _参数_ `name` 文件名
+    + _\[参数\]_ `content` 文件内容
 + `File` 指一个文件
 
   + _参数_ `path` 文件路径:`str|doFolder.Path`
