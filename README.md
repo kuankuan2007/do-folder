@@ -60,6 +60,8 @@ compare Folder1 Folder2 [-c ] [-t [-n num]]
 compare -h
 ```
 
+对于比较结果的操作指令请在出现 `>>>`后键入 `help`并回车以获取详细解释
+
 ## 关于作者
 
 作者主页[宽宽2007](https://kuankuan2007.gitee.io "作者主页")
