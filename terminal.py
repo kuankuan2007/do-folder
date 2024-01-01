@@ -21,7 +21,7 @@ import os
 import re
 
 
-def docompare(commandArgs: Union[List[str], None] = None):
+def doCompare(commandArgs: Union[List[str], None] = None):
     import argparse
 
     statueColorMapping = {

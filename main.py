@@ -386,6 +386,7 @@ class File(FileSystemNode):
         """
         with self.open("wb") as f:
             f.write(content)
+        f.flush()
 
     @property
     def md5(self) -> str:
@@ -529,6 +530,15 @@ class Folder(FileSystemNode):
         ignores: Iterable[Union[str, Path]] = [],
         gitignore: bool = False,
     ):
+        """
+        Args:
+            path (Union[str, Path]): The path to the file or directory.
+            onlisten (bool, optional): Indicates whether to enable listening for changes. Defaults to False.
+            parent (Union["Folder", None], optional): The parent folder. Defaults to None.
+            scan (bool, optional): Indicates whether to scan the directory contents. Defaults to False.
+            ignores (Iterable[Union[str, Path]], optional): A list of paths to ignore. Defaults to [].
+            gitignore (bool, optional): Indicates whether to use the .gitignore file. Defaults to False.
+        """
         self._active = True
         if not isinstance(path, Path):
             path = Path(path)
