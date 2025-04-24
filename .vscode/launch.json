@@ -1,0 +1,45 @@
+{
+  // 使用 IntelliSense 了解相关属性。
+  // 悬停以查看现有属性的描述。
+  // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PyTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "console": "integratedTerminal",
+      "args": ["--no-install", "-s"]
+    },
+    {
+      "name": "PyTest Installed",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "console": "integratedTerminal",
+      "args": ["-s"]
+    },
+    {
+      "name": "Python Build",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "build",
+      "console": "integratedTerminal",
+    },
+    {
+      "name": "Python Run Simple Test",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "simpleTest.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python Debug",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doFolder"
+version = "2.0.0"
+description = "Manage files more easily"
+authors = [
+    { name = "kuankuan", email = "2163826131@qq.com" },
+]
+readme = "README.md"
+license = "MulanPSL-2.0"
+requires-python = ">=3.8"
+
+classifiers = [
+    "Natural Language :: English",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+]
+keywords = ["folder", "file", "manage","filesystem",'directory']
+dependencies = ["exceptiongroup", "typing_extensions", "deprecated"]
+license-files = ["LICENSE"]
+
+[project.urls]
+Repository = "https://github.com/kuankuan2007/do-folder"
+
