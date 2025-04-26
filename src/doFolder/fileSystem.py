@@ -10,17 +10,37 @@ from deprecated import deprecated as _deprecated
 from enum import Enum
 
 class UnExistsMode(Enum):
+    """
+    The mode to use when the path does not exist.
+    """
     WARN = "warn"
     ERROR = "error"
     IGNORE = "ignore"
     CREATE = "create"
 
 class CreateType(Enum):
+    """
+    The type of the file to create.
+    """
     FILE = "file"
     DIR = "dir"
 
 
 class File(object):
+    """
+    The base class for file and directory.
+    You can use this class to create a file or directory.
+
+    Args:
+        path (Pathable): The path of the file or directory.
+        toAbsolute (bool, optional): Whether the path is absolute. Defaults to False.
+        redirect (bool, optional): Whether to redirect to Directory when the path is a directory. Defaults to True.
+        unExistsMode (UnExistsMode, optional): The mode to use when the path does not exist. Defaults to UnExistsMode.WARN.
+
+    Raises:
+        _ex.PathNotExistsError: When the path does not exist and unExistsMode is UnExistsMode.ERROR.
+        ValueError: When the unExistsMode is not a valid UnExistsMode.
+    """
     path: Path
 
     @_tt.overload
@@ -81,6 +101,10 @@ class File(object):
         self.checkExists(unExistsMode)
 
     def createSelf(self) -> None:
+        """
+        Create the file or directory if it does not exist.
+        It will be called automatically when the unExistsMode is UnExistsMode.CREATE.
+        """
         self.path.touch()
 
     @property
@@ -95,6 +119,9 @@ class File(object):
         return "<File {0}>".format(self.name)
 
     def open(self, *args, **kwargs):
+        """
+        Open the file.
+        """
         return self.path.open(*args, **kwargs)  # pylint: disable=unspecified-encoding
 
     @property
@@ -112,23 +139,43 @@ class File(object):
         return self.path.stat()
 
     def delete(self) -> None:
+        """
+        Delete the file or directory.
+        """
         self.path.unlink()
 
     def copy(self, path: _tt.Pathable) -> None:
+        """
+        Copy the file to the target path.
+        
+        Warning: Even the higher-level file copying functions cannot copy all file metadata.
+        """
         _shutil.copy2(self.path, path)
 
     def move(self, path: _tt.Pathable) -> None:
+        """
+        Move the file to the target path.
+        """
         target=Path(path)
         _shutil.move(self.path, path)
         self.path=target
 
     def exists(self) -> bool:
+        """
+        Check if the file or directory exists.
+        """
         return self.path.exists()
 
     def isFile(self) -> bool:
+        """"
+        Check if the path is a file.
+        """
         return self.path.is_file()
 
     def hash(self, algorithm: str = "md5") -> str:
+        """
+        Calculate the hash of the file.
+        """
         hash_obj = hashlib.new(algorithm)
         hash_obj.update(self.content)
         return hash_obj.hexdigest()
@@ -176,7 +223,19 @@ class Directory(File):
         target: _tt.Union[str, Path, _tt.Sequence[str]],
         createType: CreateType = CreateType.FILE,
     ):
+        """
+        Create a file or directory.
 
+        Args:
+            target (_tt.Union[str, Path, _tt.Sequence[str]]): The target path to create.
+            createType (CreateType, optional): The type of the file or directory to create. Defaults to CreateType.FILE.
+
+        Raises:
+            ValueError: If the target is not a valid path or the createType is not valid.
+
+        Returns:
+            _tt.Union[File, Directory]: The created file or directory.
+        """
         step = target
         if isinstance(step, str):
             step = Path(step)
@@ -212,4 +271,6 @@ class Directory(File):
 
 @_deprecated("Use Directory instead")
 class Folder(Directory):
-    pass
+    """
+    Deprecated: Use Directory instead.
+    """

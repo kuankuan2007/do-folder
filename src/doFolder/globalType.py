@@ -1,3 +1,9 @@
+"""
+This module ensures the support for the static type system in different versions
+
+It is generally named _tt in other modules
+"""
+
 # pylint: disable=unused-import
 
 from typing_extensions import (
