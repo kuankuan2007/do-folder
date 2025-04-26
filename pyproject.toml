@@ -28,4 +28,4 @@ license-files = ["LICENSE"]
 
 [project.urls]
 Repository = "https://github.com/kuankuan2007/do-folder"
-
+Issues = "https://github.com/kuankuan2007/do-folder/issues"
