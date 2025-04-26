@@ -41,11 +41,11 @@ class File(object):
         toAbsolute: bool,
         redirect: _tt.Literal[True] = True,
         unExistsMode=UnExistsMode.WARN,
-    ) -> "_tt.Self | Directory": ...
+    ) -> "_tt.Union[_tt.Self , Directory]": ...
 
     def __new__(
         cls, path: _tt.Pathable, *, redirect: bool = True, **kw
-    ) -> "_tt.Self | Directory":
+    ) -> "_tt.Union[_tt.Self , Directory]":
         path = Path(path)
         if redirect and cls is File and path.is_dir():
             cls = Directory  # pylint: disable=self-cls-assignment
@@ -98,7 +98,7 @@ class File(object):
         return self.path.open(*args, **kwargs)  # pylint: disable=unspecified-encoding
 
     @property
-    def content(self) -> bytes | _tt.NoReturn:
+    def content(self) -> _tt.Union[bytes , _tt.NoReturn]:
         with self.open("rb") as file:
             return _tt.cast(bytes, file.read())
 
