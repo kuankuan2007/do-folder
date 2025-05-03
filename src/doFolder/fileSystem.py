@@ -8,20 +8,26 @@ import shutil as _shutil
 import hashlib
 from deprecated import deprecated as _deprecated
 from enum import Enum
+import json
+
+
 
 class UnExistsMode(Enum):
     """
     The mode to use when the path does not exist.
     """
+
     WARN = "warn"
     ERROR = "error"
     IGNORE = "ignore"
     CREATE = "create"
 
+
 class CreateType(Enum):
     """
     The type of the file to create.
     """
+
     FILE = "file"
     DIR = "dir"
 
@@ -41,6 +47,7 @@ class File(object):
         _ex.PathNotExistsError: When the path does not exist and unExistsMode is UnExistsMode.ERROR.
         ValueError: When the unExistsMode is not a valid UnExistsMode.
     """
+
     path: Path
 
     @_tt.overload
@@ -125,7 +132,7 @@ class File(object):
         return self.path.open(*args, **kwargs)  # pylint: disable=unspecified-encoding
 
     @property
-    def content(self) -> _tt.Union[bytes , _tt.NoReturn]:
+    def content(self) -> _tt.Union[bytes, _tt.NoReturn]:
         with self.open("rb") as file:
             return _tt.cast(bytes, file.read())
 
@@ -147,7 +154,7 @@ class File(object):
     def copy(self, path: _tt.Pathable) -> None:
         """
         Copy the file to the target path.
-        
+
         Warning: Even the higher-level file copying functions cannot copy all file metadata.
         """
         _shutil.copy2(self.path, path)
@@ -156,9 +163,9 @@ class File(object):
         """
         Move the file to the target path.
         """
-        target=Path(path)
+        target = Path(path)
         _shutil.move(self.path, path)
-        self.path=target
+        self.path = target
 
     def exists(self) -> bool:
         """
@@ -167,7 +174,7 @@ class File(object):
         return self.path.exists()
 
     def isFile(self) -> bool:
-        """"
+        """ "
         Check if the path is a file.
         """
         return self.path.is_file()
@@ -179,6 +186,49 @@ class File(object):
         hash_obj = hashlib.new(algorithm)
         hash_obj.update(self.content)
         return hash_obj.hexdigest()
+
+    def loadAsJson(self, encoding: str = "utf-8", **kw) -> _tt.Any:
+        """
+        Load the file as JSON.
+        """
+        with self.open("r", encoding=encoding) as file:
+            return json.load(file, **kw)
+
+    def saveAsJson(
+        self,
+        data: _tt.Any,
+        encoding: str = "utf-8",
+        *,
+        skipkeys=False,
+        ensure_ascii=True,
+        check_circular=True,
+        allow_nan=True,
+        cls=None,
+        indent=None,
+        separators=None,
+        default=None,
+        sort_keys=False,
+        **kw: _tt.Any,
+    ) -> None:
+        """
+        Save the file as JSON.
+        """
+        with self.open("w", encoding=encoding) as file:
+            json.dump(
+                data,
+                file,
+                skipkeys=skipkeys,
+                ensure_ascii=ensure_ascii,
+                check_circular=check_circular,
+                allow_nan=allow_nan,
+                cls=cls,
+                indent=indent,
+                separators=separators,
+                default=default,
+                sort_keys=sort_keys,
+                **kw,
+            )
+
 
 
 class Directory(File):
@@ -257,7 +307,9 @@ class Directory(File):
                 raise ValueError("Invalid createType {0}".format(createType))
 
         else:
-            return self.getFolder(step[0], unExistsMode=UnExistsMode.CREATE).create(step[1:], createType)
+            return self.getFolder(step[0], unExistsMode=UnExistsMode.CREATE).create(
+                step[1:], createType
+            )
 
     def get(self, name: str, unExistsMode=UnExistsMode.WARN) -> File:
         return File(self.path / name, unExistsMode=unExistsMode)
