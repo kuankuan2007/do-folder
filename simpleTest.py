@@ -1,4 +1,4 @@
 from src import doFolder
+from src.doFolder import path
 
-a = doFolder.Directory("./") 
-a.create("test3", doFolder.CreateType.FILE).content="123456".encode("utf-8")
+print(path.relativePathableFormat(path.Path("a/b/c"), path.Path('./').absolute()))

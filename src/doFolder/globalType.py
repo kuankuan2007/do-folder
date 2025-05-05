@@ -5,6 +5,9 @@ It is generally named _tt in other modules
 """
 
 # pylint: disable=unused-import
+from abc import ABC
+import sys
+from pathlib import Path
 
 from typing_extensions import (
     List,
@@ -26,18 +29,17 @@ from typing_extensions import (
     NoReturn,
     TypeVar,
     Sequence,
-    Self
+    Self,
+    TypeIs
 )
-from .path import Path
-from abc import ABC
 
-import sys
 
 if sys.version_info >= (3, 10):
     from collections.abc import Callable
 else:
     from typing import Callable
 
-EVENT_TYPE = Literal["CREATED", "DELETED", "MODIFIED"]
+EventType = Literal["CREATED", "DELETED", "MODIFIED"]
 
 Pathable = Union[str, Path]
+RelativePathable = Union[str, Path, Iterable[str]]
