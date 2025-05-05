@@ -87,12 +87,14 @@ jobs:
         run: |
           for file in dist/*; do
             echo "Uploading $file"
-            echo "::set-output name=file::$file"
-          done
+            echo "{file}={$file}" >> $GITHUB_OUTPUT
+          done 
         id: set-files
 
       - name: Upload files to GitHub Release
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ${{ steps.set-files.outputs.file }}
