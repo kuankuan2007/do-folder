@@ -1,5 +1,5 @@
 deprecated
-typing_extensions
+typing_extensions>=4.10.0
 exceptiongroup
 pytest
 pylint
