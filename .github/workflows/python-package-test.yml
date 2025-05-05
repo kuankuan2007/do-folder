@@ -32,7 +32,7 @@ jobs:
     - name: Lint with pylint
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        pylint src/ --disable=C,W0614,W0401,E0611,W0718,W0719,R,W3101
+        pylint .
 
     - name: Test with pytest
       run: |
