@@ -23,9 +23,17 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
 ]
 keywords = ["folder", "file", "manage","filesystem",'directory']
-dependencies = ["exceptiongroup", "typing_extensions", "deprecated"]
+dependencies = ["exceptiongroup", "typing_extensions>=4.10.0", "deprecated"]
 license-files = ["LICENSE"]
 
 [project.urls]
 Repository = "https://github.com/kuankuan2007/do-folder"
 Issues = "https://github.com/kuankuan2007/do-folder/issues"
+
+[tool.mypy]
+
+python_version = "3.12"
+
+exclude = [
+    '^testcases\.py$',
+]
