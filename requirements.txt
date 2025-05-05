@@ -3,3 +3,4 @@ typing_extensions
 exceptiongroup
 pytest
 pylint
+mypy
