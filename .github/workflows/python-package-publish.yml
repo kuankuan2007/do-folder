@@ -86,8 +86,10 @@ jobs:
       - name: Upload all files in dist/ to GitHub Release
         run: |
           for file in dist/*; do
+            filename=$(basename "$file")
             echo "Uploading $file"
-            echo "{file}={$file}" >> $GITHUB_OUTPUT
+            echo "file=$file" >> $GITHUB_OUTPUT
+            echo "filename=$filename" >> $GITHUB_OUTPUT
           done 
         id: set-files
 
@@ -98,5 +100,5 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ${{ steps.set-files.outputs.file }}
-          asset_name: ${{ steps.set-files.outputs.file }}
+          asset_name: ${{ steps.set-files.outputs.filename }}
           asset_content_type: application/octet-stream
