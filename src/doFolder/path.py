@@ -31,10 +31,13 @@ def relativePathableFormat(
         _path = relativeTo / _path
 
     if isinstance(_path, Path):
-        if _path.is_absolute() and relativeTo.is_absolute():
+        if _path.is_absolute():
+            if not relativeTo.is_absolute():
+                raise ValueError(
+                    f"The path {path} is absolute, but the base path {relativeTo} is not."
+                )
             _path = _path.relative_to(relativeTo)
-        elif _path.is_relative_to(relativeTo):
-            _path = _path.relative_to(relativeTo)
+
         _path = _path.parts
     else:
         try:
