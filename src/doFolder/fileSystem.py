@@ -16,19 +16,6 @@ from . import (
 )  # pylint: disable=unused-import
 
 
-def isDirectory(target: "File") -> " _tt.TypeIs[Directory]":
-    """
-    Check if the target is a directory.
-
-    Args:
-        target (File): The file object to check.
-
-    Returns:
-        bool: True if the target is a directory, False otherwise.
-    """
-    return isinstance(target, Directory)
-
-
 class UnExistsMode(Enum):
     """
     The mode to use when the path does not exist.
@@ -49,7 +36,202 @@ class ItemType(Enum):
     DIR = "dir"
 
 
-class File:
+def isDir(target: "FileSystemItem") -> " _tt.TypeIs[Directory]":
+    """
+    Check if the target is a directory.
+
+    Args:
+        target (File): The file object to check.
+
+    Returns:
+        bool: True if the target is a directory, False otherwise.
+    """
+    return target.itemType == ItemType.DIR
+
+def isFile(target: "FileSystemItem") -> " _tt.TypeIs[File]":
+    """
+    Check if the target is a file.
+
+    Args:
+        target (File): The file object to check.
+
+    Returns:
+        bool: True if the target is a file, False otherwise.
+    """
+    return target.itemType == ItemType.FILE
+
+
+def createItem(
+    path: _tt.Pathable,
+    unExistsMode: UnExistsMode = UnExistsMode.WARN,
+    errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    toAbsolute: bool = False,
+    exceptType: _tt.Union[ItemType, None] = None,
+) -> "FileSystemItem":
+    """
+    Create a file system item automatically based on the path.
+    """
+    path = Path(path)
+    if path.exists():
+        if path.is_file():
+            return File(path, unExistsMode, errorMode, toAbsolute)
+        if path.is_dir():
+            return Directory(path, unExistsMode, errorMode, toAbsolute)
+        _ex.unintended(
+            f"Path {path} is not a file or directory",
+            errorMode,
+            errorClass=_ex.PathTypeError,
+            warnClass=_ex.PathTypeWarning,
+        )
+    return (Directory if exceptType == ItemType.DIR else File)(
+        path, unExistsMode, errorMode, toAbsolute, exceptType=exceptType
+    )
+
+
+class FileSystemItemBase(_tt.abc.ABC):
+    """
+    The base class for file and directory.
+    You can use this class to create a file or directory.
+    """
+
+    path: Path
+
+    @property
+    @_tt.abc.abstractmethod
+    def itemType(self) -> ItemType:
+        """The type of the file or directory."""
+        raise NotImplementedError("itemType is not implemented")
+
+    def __init__(
+        self,
+        path: _tt.Pathable,
+        unExistsMode: UnExistsMode = UnExistsMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        toAbsolute: bool = False,
+        exceptType: _tt.Union[ItemType, None] = None,
+    ):
+        """
+        Initialize the FileSystemItem.
+
+        Note:
+            The `exceptType` parameter is not used in __init__ and is only relevant in __new__.
+
+        Args:
+            path (Path): The path to the file or directory.
+            unExistsMode (UnExistsMode, optional): The mode to handle non-existing paths.
+                                                   Defaults to UnExistsMode.WARN.
+            toAbsolute (bool, optional): Whether to convert the path to an absolute path.
+                                         Defaults to False.
+        """
+        if exceptType is not None and self.itemType != exceptType:
+            _ex.unintended(
+                f"FileSystemItem {self.__class__.__name__} is not {exceptType}",
+                errorMode,
+                errorClass=_ex.PathTypeError,
+                warnClass=_ex.PathTypeWarning,
+            )
+        if not isinstance(path, Path):
+            path = Path(path)
+        self.path = path if toAbsolute else path.absolute()
+        self.checkExists(unExistsMode)
+
+    def checkExists(self, unExistsMode) -> None:
+        """
+        Check if the file or directory exists. If not, handle it based on the unExistsMode.
+
+        Args:
+            unExistsMode (UnExistsMode): The mode to handle non-existing paths.
+
+        Raises:
+            _ex.PathNotExistsError: If the path does not exist and unExistsMode is ERROR.
+            ValueError: If the unExistsMode is invalid.
+        """
+        if self.exists():
+            return
+
+        if unExistsMode == UnExistsMode.WARN:
+            _ex.warn(
+                f"Path does not exist: {self.path}",
+                _ex.PathNotExistsWarning,
+            )
+        elif unExistsMode == UnExistsMode.ERROR:
+            raise _ex.PathNotExistsError(f"Path does not exist: {self.path}")
+        elif unExistsMode == UnExistsMode.IGNORE:
+            pass
+        elif unExistsMode == UnExistsMode.CREATE:
+            self.createSelf()
+        else:
+            raise ValueError(f"Invalid unExistsMode: {unExistsMode}")
+
+    def checkItemType(self, itemType: ItemType) -> bool:
+        """
+        Check if the item type matches the expected type.
+
+        Args:
+            itemType (ItemType): The expected item type.
+
+        Returns:
+            bool: True if the item type matches, False otherwise.
+        """
+        return self.itemType == itemType
+
+    @_tt.abc.abstractmethod
+    def createSelf(self) -> None:
+        """create the item self"""
+        raise NotImplementedError("createSelf is not implemented")
+
+    def exists(self) -> bool:
+        """
+        Check if the item exists.
+        """
+        return self.path.exists()
+
+    @property
+    def name(self) -> str:
+        """The name of the file or directory."""
+        return self.path.name
+
+    @property
+    def extension(self) -> str:
+        """The extension of the file."""
+        return self.path.suffix
+
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__} {self.name}>"
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} {self.path}>"
+
+    def isFile(self) -> bool:
+        """Check if the item is a file."""
+        return self.path.is_file()
+
+    def isDir(self) -> bool:
+        """Check if the item is a directory."""
+        return self.path.is_dir()
+
+    @property
+    def state(self):
+        """Get the state of the file or directory."""
+        return self.path.stat()
+
+    @_tt.abc.abstractmethod
+    def move(self, target: _tt.Pathable) -> None:
+        """Move the item to the target path."""
+        raise NotImplementedError("move is not implemented")
+
+    @_tt.abc.abstractmethod
+    def copy(self, target: _tt.Pathable) -> None:
+        """Copy the item to the target path."""
+        raise NotImplementedError("copy is not implemented")
+
+    @_tt.abc.abstractmethod
+    def delete(self) -> None:
+        """Delete the item."""
+        raise NotImplementedError("delete is not implemented")
+
+
+class File(FileSystemItemBase):
     """
     The base class for file and directory.
     You can use this class to create a file or directory.
@@ -67,93 +249,15 @@ class File:
         ValueError: When the unExistsMode is not a valid UnExistsMode.
     """
 
-    path: Path
-
-    @_tt.overload
-    def __new__(
-        cls,
-        path: _tt.Pathable,
-        *,
-        toAbsolute: bool = False,
-        redirect: _tt.Literal[False] = False,
-        unExistsMode=UnExistsMode.WARN,
-    ) -> "_tt.Self": ...
-
-    @_tt.overload
-    def __new__(
-        cls,
-        path: _tt.Pathable,
-        *,
-        toAbsolute: bool,
-        redirect: _tt.Literal[True] = True,
-        unExistsMode=UnExistsMode.WARN,
-    ) -> "_tt.Union[_tt.Self , Directory]": ...
-
-    def __new__(
-        cls, path: _tt.Pathable, *, redirect: bool = True, **kw
-    ) -> "_tt.Union[_tt.Self, Directory]":
-        path = Path(path)
-        if redirect and cls is File and path.is_dir():
-            cls = Directory  # pylint: disable=self-cls-assignment
-        return super().__new__(cls)  # type: ignore
-
-    def checkExists(self, unExistsMode) -> None:
-        """
-        Check if the file or directory exists. If not, handle it based on the unExistsMode.
-
-        Args:
-            unExistsMode (UnExistsMode): The mode to handle non-existing paths.
-
-        Raises:
-            _ex.PathNotExistsError: If the path does not exist and unExistsMode is ERROR.
-            ValueError: If the unExistsMode is invalid.
-        """
-        if self.path.exists():
-            return
-
-        if unExistsMode.value == UnExistsMode.WARN.value:
-            _ex.warn(
-                f"Path does not exist: {self.path}",
-                _ex.PathNotExistsWarning,
-            )
-        elif unExistsMode.value == UnExistsMode.ERROR.value:
-            raise _ex.PathNotExistsError(f"Path does not exist: {self.path}")
-        elif unExistsMode.value == UnExistsMode.IGNORE.value:
-            pass
-        elif unExistsMode.value == UnExistsMode.CREATE.value:
-            self.createSelf()
-        else:
-            raise ValueError(f"Invalid unExistsMode: {unExistsMode}")
-
-    def __init__(
-        self,
-        path: _tt.Pathable,
-        *,
-        toAbsolute: bool = False,
-        redirect: bool = True,  # pylint: disable=unused-argument
-        unExistsMode=UnExistsMode.WARN,
-    ) -> None:
-        self.path = Path(path) if toAbsolute else Path(path).absolute()
-        self.checkExists(unExistsMode)
+    @property
+    def itemType(self) -> ItemType:
+        return ItemType.FILE
 
     def createSelf(self) -> None:
         """
         Create the file if it does not exist. Called automatically when unExistsMode is CREATE.
         """
         self.path.touch()
-
-    @property
-    def name(self) -> str:
-        """The name of the file or directory."""
-        return self.path.name
-
-    @property
-    def extension(self) -> str:
-        """The extension of the file."""
-        return self.path.suffix
-
-    def __str__(self) -> str:
-        return f"<File {self.name}>"
 
     def open(self, *args, **kwargs):
         """
@@ -179,27 +283,13 @@ class File:
         with self.open("wb") as file:
             file.write(_tt.cast(_tt.Any, content))
 
-    @property
-    def state(self):
-        """Get the state of the file or directory."""
-        return self.path.stat()
-
-    @property
-    def itemType(self) -> ItemType:
-        """Get the type of the file or directory."""
-        if self.path.is_file():
-            return ItemType.FILE
-        if self.path.is_dir():
-            return ItemType.DIR
-        raise _ex.PathNotExistsError(f"Path does not exist: {self.path}")
-
     def delete(self) -> None:
         """
         Delete the file or directory.
         """
         self.path.unlink()
 
-    def copy(self, path: _tt.Pathable) -> None:
+    def copy(self, target: _tt.Pathable) -> None:
         """
         Copy the file to the specified path.
 
@@ -208,36 +298,18 @@ class File:
 
 
         """
-        _shutil.copy2(self.path, path)
+        _shutil.copy2(self.path, target)
 
-    def move(self, path: _tt.Pathable) -> None:
+    def move(self, target: _tt.Pathable) -> None:
         """
         Move the file to the specified path.
 
         Args:
             path (_tt.Pathable): The target path to move the file to.
         """
-        target = Path(path)
-        _shutil.move(self.path, path)
+        target = Path(target)
+        _shutil.move(self.path, target)
         self.path = target
-
-    def exists(self) -> bool:
-        """
-        Check if the file or directory exists.
-
-        Returns:
-            bool: True if the file or directory exists, False otherwise.
-        """
-        return self.path.exists()
-
-    def isFile(self) -> bool:
-        """
-        Check if the path is a file.
-
-        Returns:
-            bool: True if the path is a file, False otherwise.
-        """
-        return self.path.is_file()
 
     def hash(self, algorithm: str = "md5") -> str:
         """
@@ -317,10 +389,14 @@ class File:
             )
 
 
-class Directory(File):
+class Directory(FileSystemItemBase):
     """
     A class representing a directory, inheriting from File.
     """
+
+    @property
+    def itemType(self) -> ItemType:
+        return ItemType.DIR
 
     def createSelf(self) -> None:
         """
@@ -329,48 +405,41 @@ class Directory(File):
         if not self.path.exists():
             self.path.mkdir(parents=True, exist_ok=True)
 
-    def open(self, *args, **kwargs):
-        """
-        Raise an error because directories cannot be opened as files.
-
-        Raises:
-            _ex.OpenDirectoryError: Always raised when this method is called.
-        """
-        raise _ex.OpenDirectoryError(
-            f"Directory cannot be opened and read: {self.path}"
-        )
-
     def delete(self) -> None:
         """
         Delete the directory and all its contents.
         """
         _shutil.rmtree(self.path)
 
-    def copy(self, path: _tt.Pathable) -> None:
+    def copy(self, target: _tt.Pathable) -> None:
         """
         Copy the directory and its contents to the specified path.
 
         Args:
             path (_tt.Pathable): The target path to copy the directory to.
         """
-        _shutil.copytree(self.path, path)
+        _shutil.copytree(self.path, target)
 
-    def __iter__(self) -> _tt.Iterator[File]:
+    def move(self, target: _tt.Pathable) -> None:
+        """
+        Move the directory and its contents to the specified path.
+        """
+        _shutil.move(self.path, target)
+        self.path = Path(target)
+
+    def __iter__(self) -> "_tt.Iterator[FileSystemItem]":
         """
         Iterate over the files and directories in this directory.
 
         Yields:
-            File: Each file or directory in the directory.
+            FileSystemItem: Each file or directory in the directory.
         """
         l = self.path.iterdir()
 
         for i in l:
-            yield File(i)
+            yield createItem(i)
 
-    def __str__(self) -> str:
-        return f"<Directory {self.name}>"
-
-    def __getitem__(self, name: str) -> File:
+    def __getitem__(self, name: str) -> "FileSystemItem":
         """
         Get a file or directory by name.
 
@@ -380,170 +449,234 @@ class Directory(File):
         Returns:
             File: The file or directory object.
         """
-        return self.get(name, unExistsMode=UnExistsMode.ERROR)
+        return self._get(name, unExistsMode=UnExistsMode.ERROR)
 
-    def relativeTo(self, target: _tt.Pathable) -> Path:
-        """
-        Get the relative path from this directory to the target.
-
-        Args:
-            target (_tt.Pathable): The target path.
-
-        Returns:
-            Path: The relative path.
-        """
-        if not isinstance(target, Path):
-            target = Path(target)
-        if target.is_absolute():
-            target = target.relative_to(self.path)
-        return target
-
-    @_tt.overload
-    def create(
-        self,
-        target: _tt.RelativePathable,
-        createType: _tt.Literal[ItemType.FILE],
-    ) -> File: ...
-
-    @_tt.overload
-    def create(
-        self,
-        target: _tt.RelativePathable,
-        createType: _tt.Literal[ItemType.DIR],
-    ) -> "Directory": ...
     def create(
         self,
         target: _tt.RelativePathable,
         createType: ItemType = ItemType.FILE,
-    ):
-        """
-        Create a file or directory at the specified relative path.
+        *,
+        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "FileSystemItem":
 
-        Args:
-            target (_tt.RelativePathable): The relative path to create.
-            createType (ItemType, optional): The type of item to create. Defaults to ItemType.FILE.
-
-        Returns:
-            Union[File, Directory]: The created file or directory.
-        """
-        step = relativePathableFormat(target, self.path)
-
-        if len(step) == 1:
-            if createType == ItemType.FILE:
-                return self.get(step[0], unExistsMode=UnExistsMode.CREATE)
-            if createType == ItemType.DIR:
-                return self.getFolder(step[0], unExistsMode=UnExistsMode.CREATE)
-            raise ValueError(f"Invalid createType {createType}")
-
-        return self.getFolder(step[0], unExistsMode=UnExistsMode.CREATE).create(
-            step[1:], createType
+        return self.deepCall(
+            target,
+            "_create",
+            createMiddleDir=True,
+            createType=createType,
+            existsErrorMode=existsErrorMode,
+            errorMode=errorMode,
         )
 
-    def createFile(self, target: _tt.RelativePathable) -> File:
-        """
-        Create a file at the specified relative path.
+    def createFile(
+        self,
+        target: _tt.RelativePathable,
+        *,
+        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "File":
 
-        Args:
-            target (_tt.RelativePathable): The relative path to create the file.
+        res = self.create(
+            target,
+            createType=ItemType.FILE,
+            existsErrorMode=existsErrorMode,
+            errorMode=errorMode,
+        )
+        if not isFile(res):
+            raise _ex.PathTypeError(f"{target} is not a file.")
+        return res
 
-        Returns:
-            File: The created file.
-        """
-        return self.create(target, ItemType.FILE)
+    def createDir(
+        self,
+        target: _tt.RelativePathable,
+        *,
+        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "Directory":
 
-    def createDir(self, target: _tt.RelativePathable) -> "Directory":
-        """
-        Create a directory at the specified relative path.
+        res = self.create(
+            target,
+            createType=ItemType.DIR,
+            existsErrorMode=existsErrorMode,
+            errorMode=errorMode,
+        )
+        if not isDir(res):
+            raise _ex.PathTypeError(f"{target} is not a directory.")
+        return res
 
-        Args:
-            target (_tt.RelativePathable): The relative path to create the directory.
+    def get(
+        self,
+        target: _tt.RelativePathable,
+        *,
+        exceptType: ItemType = ItemType.FILE,
+        unExistsMode: UnExistsMode = UnExistsMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "FileSystemItem":
+        return self.deepCall(
+            target,
+            "_get",
+            allowedTargetType=unExistsMode == UnExistsMode.CREATE,
+            unExistsMode=unExistsMode,
+            errorMode=errorMode,
+            exceptType=exceptType,
+        )
 
-        Returns:
-            Directory: The created directory.
-        """
-        return self.create(target, ItemType.DIR)
+    def getFile(
+        self,
+        target: _tt.RelativePathable,
+        *,
+        unExistsMode: UnExistsMode = UnExistsMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "File":
+        res= self.deepCall(
+            target,
+            "_get",
+            allowedTargetType=unExistsMode == UnExistsMode.CREATE,
+            unExistsMode=unExistsMode,
+            errorMode=errorMode,
+            exceptType=ItemType.FILE,
+        )
+        if not isFile(res):
+            raise _ex.PathTypeError(f"{target} is not a file.")
 
-    def get(self, name: str, unExistsMode=UnExistsMode.WARN) -> File:
-        """
-        Get a file by name, creating it if necessary based on unExistsMode.
+        return res
 
-        Args:
-            name (str): The name of the file.
-            unExistsMode (UnExistsMode, optional): The mode to handle non-existing files.
-                                                    Defaults to UnExistsMode.WARN.
-
-        Returns:
-            File: The file object.
-        """
-        return File(self.path / name, unExistsMode=unExistsMode)
-
-    def getFolder(self, name: str, unExistsMode=UnExistsMode.WARN) -> "Directory":
-        """
-        Get a directory by name, creating it if necessary based on unExistsMode.
-
-        Args:
-            name (str): The name of the directory.
-            unExistsMode (UnExistsMode, optional): The mode to handle non-existing directories.
-                                                    Defaults to UnExistsMode.WARN.
-
-        Returns:
-            Directory: The directory object.
-        """
-        return Directory(self.path / name, unExistsMode=unExistsMode)
+    def getDir(
+        self,
+        target: _tt.RelativePathable,
+        *,
+        unExistsMode: UnExistsMode = UnExistsMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "Directory":
+        res = self.deepCall(
+            target,
+            "_get",
+            allowedTargetType=unExistsMode == UnExistsMode.CREATE,
+            unExistsMode=unExistsMode,
+            errorMode=errorMode,
+            exceptType=ItemType.FILE,
+        )
+        if not isDir(res):
+            raise _ex.PathTypeError(f"{target} is not a file.")
+        return res
 
     def has(
         self,
-        target: _tt.Union[_tt.RelativePathable, File],
-        targetType: _tt.Union[ItemType, None] = None,
+        target: _tt.RelativePathable,
+        *,
+        allowedTargetType: _tt.Union[ItemType, None] = None,
+    ) -> bool:
+        return self.deepCall(
+            target,
+            "_has",
+            allowedTargetType=allowedTargetType,
+        )
+
+    def deepCall(
+        self,
+        target: _tt.RelativePathable,
+        func: str,
+        *args,
+        createMiddleDir: bool = False,
+        **kwargs,
+    ) -> "_tt.Any":
+
+        _target = relativePathableFormat(target, self.path)
+
+        if len(_target) == 0:
+            raise ValueError(f"Invalid target path: {target}")
+        if len(_target) == 1:
+            return getattr(self, func)(_target[0], *args, **kwargs)
+
+        _next = self._get(
+            _target[0],
+            exceptType=ItemType.DIR,
+            unExistsMode=(
+                UnExistsMode.CREATE if createMiddleDir else UnExistsMode.IGNORE
+            ),
+        )
+        if not _next.exists():
+            raise _ex.PathNotExistsError(f"{_next.path} not found.")
+
+        if _next.itemType != ItemType.DIR:
+            raise _ex.PathTypeError(f"{_next.path} is not a directory.")
+
+        return _tt.cast(Directory, _next).deepCall(
+            _target[1:], func, createMiddleDir=createMiddleDir, *args, **kwargs
+        )
+
+    def _create(
+        self,
+        target: str,
+        *,
+        createType: ItemType = ItemType.FILE,
+        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
         errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "FileSystemItem":
+        _target = self.path / target
+        if _target.exists():
+            _ex.unintended(
+                f"Path {target} already exists",
+                existsErrorMode,
+                errorClass=_ex.PathAreadyExistsError,
+                warnClass=_ex.PathAreadyExistsWarning,
+            )
+        return self._get(
+            target,
+            exceptType=createType,
+            errorMode=errorMode,
+            unExistsMode=UnExistsMode.CREATE,
+        )
+
+    def _get(
+        self,
+        target: str,
+        *,
+        exceptType: ItemType = ItemType.FILE,
+        unExistsMode: UnExistsMode = UnExistsMode.WARN,
+        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    ) -> "FileSystemItem":
+        _target = self.path / target
+
+        return createItem(
+            _target,
+            unExistsMode=unExistsMode,
+            exceptType=exceptType,
+            errorMode=errorMode,
+        )
+
+    def _has(
+        self, target: str, *, allowedTargetType: _tt.Union[ItemType, None] = None
+    ) -> bool:
+        item = self._get(target, unExistsMode=UnExistsMode.IGNORE)
+        if not item.exists():
+            return False
+        return allowedTargetType is None or item.itemType == allowedTargetType
+
+    def __contains__(
+        self, target: "_tt.Union[_tt.RelativePathable, FileSystemItem]"
     ) -> bool:
         """
         Check if a file or directory exists in this directory.
 
         Args:
-            target (Union[RelativePathable, File]): The target file or directory.
-            targetType (Union[ItemType, None], optional): The expected type of the target.
-                                                                Defaults to None.
-            errorMode (_ex.ErrorMode, optional): The error mode to use.
-                                                    Defaults to _ex.ErrorMode.WARN.
+            target (Union[RelativePathable, FileSystemItem]): The target file or directory.
 
         Returns:
             bool: True if the target exists, False otherwise.
         """
-        _target = target.path if isinstance(target, File) else target
+        _target = target.path if isinstance(target, FileSystemItemBase) else target
 
-        step = relativePathableFormat(_target, self.path)
-
-        item = self.get(step[0], unExistsMode=UnExistsMode.IGNORE)
-
-        if not item.exists():
-            return False
-
-        if len(step) == 1:
-            return targetType is None or item.itemType == targetType
-
-        if isDirectory(item):
-            return item.has(step[1:], targetType, errorMode)
-
-        _ex.unintended(
-            f"{item.path} is a file, not a directory",
-            mode=errorMode,
-            warnClass=_ex.PathIsNotDirWarning,
-            errorClass=_ex.PathIsNotDirError,
+        return self.has(
+            _target,
+            allowedTargetType=(
+                target.itemType if isinstance(target, FileSystemItemBase) else None
+            ),
         )
-        return False
 
-    def __contains__(self, target: _tt.Union[_tt.RelativePathable, File]) -> bool:
-        """
-        Check if a file or directory exists in this directory.
 
-        Args:
-            target (Union[RelativePathable, File]): The target file or directory.
-
-        Returns:
-            bool: True if the target exists, False otherwise.
-        """
-        return self.has(target, targetType=None, errorMode=_ex.ErrorMode.IGNORE)
+FileSystemItem = _tt.Union[File, Directory]
 
 
 @_deprecated("Use Directory instead")

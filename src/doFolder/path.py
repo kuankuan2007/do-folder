@@ -26,6 +26,9 @@ def relativePathableFormat(
         ValueError: If the path is invalid or cannot be made relative to the base path.
         TypeError: If the path cannot be converted into a tuple.
     """
+    if isinstance(path, tuple):
+        return path
+
     _path = path
     if isinstance(_path, str):
         _path = relativeTo / _path

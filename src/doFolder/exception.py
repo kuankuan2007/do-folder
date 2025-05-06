@@ -25,13 +25,17 @@ class PathNotExistsError(RuntimeError):
     You can use UnExistsMode to change the operation of the program when the path does not exist
     """
 
-
-class PathIsNotDirError(RuntimeError):
+class PathAreadyExistsError(RuntimeError):
     """
-    The exception raised when the program try to access a path that is not a directory.
-    You can use UnExistsMode to change the operation of the program when the path is not a directory
+    The exception raised when the program try to create a path that already exists.
+    You can use UnExistsMode to change the operation of the program when the path already exists
     """
+    
 
+class PathTypeError(RuntimeError):
+    """
+    The exception raised when the program try to access a path that is not in expected type.
+    """
 
 # pylint: disable=unused-import
 
@@ -42,11 +46,15 @@ class PathNotExistsWarning(RuntimeWarning):
     You can use UnExistsMode to change the operation of the program when the path does not exist
     """
 
-
-class PathIsNotDirWarning(RuntimeWarning):
+class PathAreadyExistsWarning(RuntimeWarning):
     """
-    The warning raised when the program try to access a path that is not a directory.
-    You can use UnExistsMode to change the operation of the program when the path is not a directory
+    The warning raised when the program try to create a path that already exists.
+    You can use UnExistsMode to change the operation of the program when the path already exists
+    """
+
+class PathTypeWarning(RuntimeWarning):
+    """
+    The warning raised when the program try to access a path that is not in expected type.
     """
 
 
@@ -63,6 +71,7 @@ class ErrorMode(Enum):
 def unintended(
     content: str,
     mode: ErrorMode = ErrorMode.WARN,
+    *,
     warnClass=RuntimeWarning,
     errorClass=RuntimeError,
 ):

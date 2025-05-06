@@ -5,7 +5,7 @@ It is generally named _tt in other modules
 """
 
 # pylint: disable=unused-import
-from abc import ABC
+import abc
 import sys
 from pathlib import Path
 

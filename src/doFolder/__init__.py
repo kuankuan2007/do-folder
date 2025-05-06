@@ -14,7 +14,15 @@ example:
 :license: MulanPSL-2.0, see LICENSE for more details.
 """
 
-from .fileSystem import File, Directory, ItemType, UnExistsMode, Folder
+from .fileSystem import File, Directory, ItemType, UnExistsMode, Folder, createItem, isDir
 from .path import Path
 
-__all__ = ["File", "Directory", "ItemType", "UnExistsMode", "Path", "Folder"]
+__all__ = [
+    "File",
+    "Directory",
+    "ItemType",
+    "UnExistsMode",
+    "Path",
+    "Folder",
+    "createItem",
+]
