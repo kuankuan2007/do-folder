@@ -1,7 +1,8 @@
 """
-This module ensures the support for the static type system in different versions
+This module provides type aliases and ensures compatibility with the static
+type system across different Python versions.
 
-It is generally named _tt in other modules
+It is commonly imported as `_tt` in other modules for type hinting purposes.
 """
 
 # pylint: disable=unused-import
@@ -30,16 +31,24 @@ from typing_extensions import (
     TypeVar,
     Sequence,
     Self,
-    TypeIs
+    TypeIs,
 )
-
 
 if sys.version_info >= (3, 10):
     from collections.abc import Callable
 else:
     from typing import Callable
 
-EventType = Literal["CREATED", "DELETED", "MODIFIED"]
 
 Pathable = Union[str, Path]
+"""
+Represents a path that can be provided as either a string or a `Path` object.
+"""
+
 RelativePathable = Union[str, Path, Iterable[str]]
+"""
+Represents a path that can be relative and provided as:
+- A string.
+- A `Path` object.
+- An iterable of strings representing path components.
+"""

@@ -1,6 +1,6 @@
 """
-This module contains the exceptions and warnings used in the doFolder package.
-It will be imported in other modules as _ex
+This module defines custom exceptions, warnings, and utilities for handling
+unexpected situations in the doFolder package.
 """
 
 # pylint: disable=unused-import
@@ -15,54 +15,62 @@ if sys.version_info >= (3, 11):
 
 class OpenDirectoryError(RuntimeError):
     """
-    The exception raised when the program try opening a directory as a file.
+    Raised when attempting to open a directory as if it were a file.
     """
 
 
 class PathNotExistsError(RuntimeError):
     """
-    The exception raised when the program try to access a path that does not exist.
-    You can use UnExistsMode to change the operation of the program when the path does not exist
+    Raised when attempting to access a path that does not exist.
+    Use `UnExistsMode` to configure the behavior for non-existent paths.
     """
+
 
 class PathAreadyExistsError(RuntimeError):
     """
-    The exception raised when the program try to create a path that already exists.
-    You can use UnExistsMode to change the operation of the program when the path already exists
+    Raised when attempting to create a path that already exists.
+    Use `UnExistsMode` to configure the behavior for existing paths.
     """
-    
+
 
 class PathTypeError(RuntimeError):
     """
-    The exception raised when the program try to access a path that is not in expected type.
+    Raised when a path is not of the expected type (e.g., file vs directory).
     """
+
 
 # pylint: disable=unused-import
 
 
 class PathNotExistsWarning(RuntimeWarning):
     """
-    The warning raised when the program try to access a path that does not exist.
-    You can use UnExistsMode to change the operation of the program when the path does not exist
+    Warning issued when attempting to access a path that does not exist.
+    Use `UnExistsMode` to configure the behavior for non-existent paths.
     """
+
 
 class PathAreadyExistsWarning(RuntimeWarning):
     """
-    The warning raised when the program try to create a path that already exists.
-    You can use UnExistsMode to change the operation of the program when the path already exists
+    Warning issued when attempting to create a path that already exists.
+    Use `UnExistsMode` to configure the behavior for existing paths.
     """
+
 
 class PathTypeWarning(RuntimeWarning):
     """
-    The warning raised when the program try to access a path that is not in expected type.
+    Warning issued when a path is not of the expected type (e.g., file vs directory).
     """
 
 
 class ErrorMode(Enum):
     """
-    The enum class for the error mode.
-    """
+    Enum representing modes for handling errors or warnings.
 
+    Attributes:
+        WARN: Issue a warning.
+        ERROR: Raise an exception.
+        IGNORE: Ignore the situation.
+    """
     WARN = "warn"
     ERROR = "error"
     IGNORE = "ignore"
@@ -76,23 +84,21 @@ def unintended(
     errorClass=RuntimeError,
 ):
     """
-    Handles unintended situations by raising warnings, errors,
+    Handle unintended situations by issuing warnings, raising exceptions,
     or ignoring them based on the specified mode.
 
     Args:
-        content (str): The message describing the unintended situation.
+        content (str): A message describing the unintended situation.
         mode (ErrorMode, optional): Specifies how to handle the situation.
-            - ErrorMode.WARN: Issues a warning (default).
-            - ErrorMode.ERROR: Raises an exception.
-            - ErrorMode.IGNORE: Ignores the situation.
-        warnClass (type, optional): The class of the warning to be issued.
-                                        Defaults to RuntimeWarning.
-        errorClass (type, optional): The class of the exception to be raised.
-                                            Defaults to RuntimeError.
+            - `ErrorMode.WARN`: Issue a warning (default).
+            - `ErrorMode.ERROR`: Raise an exception.
+            - `ErrorMode.IGNORE`: Ignore the situation.
+        warnClass (type, optional): The warning class to use. Defaults to `RuntimeWarning`.
+        errorClass (type, optional): The exception class to use. Defaults to `RuntimeError`.
 
     Raises:
-        errorClass: If mode is set to ErrorMode.ERROR,
-            raises an exception of the specified errorClass.
+        errorClass: If `mode` is set to `ErrorMode.ERROR`, raises an exception
+                    of the specified `errorClass`.
     """
     if mode == ErrorMode.WARN:
         warn(content, category=warnClass)
