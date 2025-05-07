@@ -57,6 +57,7 @@ def isDir(target: "FileSystemItem") -> " _tt.TypeIs[Directory]":
     """
     return target.itemType == ItemType.DIR
 
+
 def isFile(target: "FileSystemItem") -> " _tt.TypeIs[File]":
     """
     Determine if the given target is a file.
@@ -267,6 +268,15 @@ class FileSystemItemBase(_tt.abc.ABC):
             os.stat_result: The state of the file or directory.
         """
         return self.path.stat()
+
+    def parent(self) -> "Directory":
+        """
+        Get the parent directory of the file or directory.
+
+        Returns:
+            Directory: The parent directory of the file or directory.
+        """
+        return Directory(self.path.parent, unExistsMode=UnExistsMode.IGNORE)
 
     @_tt.abc.abstractmethod
     def move(self, target: _tt.Pathable) -> None:
@@ -880,12 +890,14 @@ class Directory(FileSystemItemBase):
         Returns:
             bool: True if the target exists, False otherwise.
         """
-        _target = target.path if isinstance(target, FileSystemItemBase) else target
+        _target = target.path if isinstance(
+            target, FileSystemItemBase) else target
 
         return self.has(
             _target,
             allowedTargetType=(
-                target.itemType if isinstance(target, FileSystemItemBase) else None
+                target.itemType if isinstance(
+                    target, FileSystemItemBase) else None
             ),
         )
 
