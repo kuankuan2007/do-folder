@@ -42,7 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - release-build
-
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
 
     # Dedicated environments with protections for publishing are strongly recommended.
     # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
@@ -77,22 +79,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Upload all files in dist/ to GitHub Release
+      - name: find tar.gz file
         run: |
-          for file in dist/*; do
+          find dist -name "*.tar.gz" | while read file; do
             filename=$(basename "$file")
-            echo "Uploading $file"
             echo "file=$file" >> $GITHUB_OUTPUT
             echo "filename=$filename" >> $GITHUB_OUTPUT
-          done 
-        id: set-files
+          done
+        id: set-tar-gz-file
 
-      - name: Upload files to GitHub Release
+      - name: Upload tar.gz files to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ steps.set-files.outputs.file }}
-          asset_name: ${{ steps.set-files.outputs.filename }}
+          asset_path: ${{ steps.set-tar-gz-file.outputs.file }}
+          asset_name: ${{ steps.set-tar-gz-file.outputs.filename }}
+          asset_content_type: application/octet-stream
+      
+      - name: find wheel file
+        run: |
+          find dist -name "*.whl" | while read file; do
+            filename=$(basename "$file")
+            echo "file=$file" >> $GITHUB_OUTPUT
+            echo "filename=$filename" >> $GITHUB_OUTPUT
+          done
+        id: set-wheel-file
+
+      - name: Upload tar.gz files to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ steps.set-wheel-file.outputs.file }}
+          asset_name: ${{ steps.set-wheel-file.outputs.filename }}
           asset_content_type: application/octet-stream

@@ -4,3 +4,4 @@ exceptiongroup
 pytest
 pylint
 mypy
+build
