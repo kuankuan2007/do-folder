@@ -77,12 +77,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
       - name: Upload all files in dist/ to GitHub Release
         run: |
           for file in dist/*; do
@@ -99,6 +93,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.set-files.outputs.file }}
+          asset_path: ./${{ steps.set-files.outputs.file }}
           asset_name: ${{ steps.set-files.outputs.filename }}
           asset_content_type: application/octet-stream
