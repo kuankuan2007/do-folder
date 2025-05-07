@@ -9,7 +9,7 @@ from enum import Enum
 from warnings import warn
 
 # use exceptiongroup if available, else use ExceptionGroup from the standard library
-if sys.version_info >= (3, 11):
+if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup  # pylint: disable=redefined-builtin
 
 
