@@ -78,7 +78,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
       - name: find tar.gz file
         run: |
           find dist -name "*.tar.gz" | while read file; do
