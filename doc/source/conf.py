@@ -1,0 +1,68 @@
+# Configuration file for the Sphinx documentation builder.
+#
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
+import datetime
+import os
+import sys
+from pathlib import Path
+import tomllib
+
+with (Path(__file__).parent.parent.parent / "pyproject.toml").open("rb") as f:
+    pyproject = tomllib.load(f)
+
+project = pyproject["project"]["name"]
+author = pyproject["project"]["authors"][0]["name"]
+copyright = f"2023-{datetime.datetime.now().year}, {author}"
+release = pyproject["project"]["version"]
+
+# Add src/doFolder to sys.path
+sys.path.insert(0, os.path.abspath("../../src"))
+
+# -- General configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "myst_parser",
+    "sphinx.ext.autosummary",
+]
+
+autosummary_generate = True  # Automatically generate summary files
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+}
+
+templates_path = ["_templates"]
+exclude_patterns = []
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".txt": "markdown",
+    ".md": "markdown",
+}
+
+html_additional_pages = {"buildInfo": "buildInfo.html"}
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+
+html_theme = "ksphinx"  # 自定义主题名称
+html_theme_path = ["./_themes"]  # 自定义主题路径
+html_static_path = ["_static"]
+
+
+html_js_files = ["ksphinx.js", "highlight.min.js"]
+# html_domain_indices = False

@@ -1,6 +1,6 @@
 """
 doFolder - A Python library for file and directory management.
-~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 example:
     >>> import doFolder

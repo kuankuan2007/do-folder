@@ -5,8 +5,8 @@ unexpected situations in the doFolder package.
 
 # pylint: disable=unused-import
 import sys
-from enum import Enum
 from warnings import warn
+from .enums import ErrorMode
 
 # use exceptiongroup if available, else use ExceptionGroup from the standard library
 if sys.version_info < (3, 11):
@@ -62,18 +62,7 @@ class PathTypeWarning(RuntimeWarning):
     """
 
 
-class ErrorMode(Enum):
-    """
-    Enum representing modes for handling errors or warnings.
 
-    Attributes:
-        WARN: Issue a warning.
-        ERROR: Raise an exception.
-        IGNORE: Ignore the situation.
-    """
-    WARN = "warn"
-    ERROR = "error"
-    IGNORE = "ignore"
 
 
 def unintended(

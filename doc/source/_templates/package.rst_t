@@ -1,0 +1,59 @@
+{%- macro automodule(modname, options) -%}
+.. automodule:: {{ modname }}
+   :no-members:
+{%- endmacro %}
+
+{%- macro toctree(docnames) -%}
+.. toctree::
+   :maxdepth: {{ maxdepth }}
+{% for docname in docnames %}
+   {{ docname }}
+{%- endfor %}
+{%- endmacro %}
+
+{%- if is_namespace %}
+{{- [pkgname, "namespace"] | join(" ") | e | heading }}
+{% else %}
+{{- [pkgname, "package"] | join(" ") | e | heading }}
+{% endif %}
+
+{%- if is_namespace %}
+.. py:module:: {{ pkgname }}
+{% endif %}
+
+{%- if modulefirst and not is_namespace %}
+{{ automodule(pkgname, automodule_options) }}
+{% endif %}
+
+Module contents
+---------------
+
+{{ automodule(pkgname, automodule_options) }}
+
+{%- if subpackages %}
+Subpackages
+-----------
+
+{% for subpackage in  subpackages%}
+:doc:`{{ subpackage }}` 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+{{ automodule(subpackage, automodule_options) }}
+
+{% endfor%}
+
+{%- endif %}
+
+{%- if submodules %}
+Submodules
+----------
+
+{% for submodule in submodules %}
+:doc:`{{ submodule }}` 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+{{ automodule(submodule, automodule_options) }}
+
+{% endfor%}
+
+{%- endif %}
+
+

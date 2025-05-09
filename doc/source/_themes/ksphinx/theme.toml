@@ -1,0 +1,10 @@
+[theme]
+inherit = "basic"
+
+pygments_style = { default = "none" }
+html_static_path = ["static"]
+
+stylesheets = [
+    "ksphinx.css",
+]
+scripts = ["ksphinx.js", "highlight.min.js"]

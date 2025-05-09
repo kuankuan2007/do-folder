@@ -5,3 +5,6 @@ dist/
 /src/*.egg-info/
 .pytest_cache/
 /temp/
+/doc/build
+/doc/source/apis
+/doc-dist

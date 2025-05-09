@@ -5,11 +5,11 @@ Provides classes and methods for managing files and directories.
 
 import shutil as _shutil
 import hashlib
-from enum import Enum
 import json
 from deprecated import deprecated as _deprecated
 
 from .path import Path, relativePathableFormat
+from .enums import ErrorMode, UnExistsMode, ItemType
 
 from . import (
     exception as _ex,
@@ -17,32 +17,7 @@ from . import (
 )  # pylint: disable=unused-import
 
 
-class UnExistsMode(Enum):
-    """
-    Enum representing the behavior when a path does not exist.
 
-    Attributes:
-        WARN: Issue a warning if the path does not exist.
-        ERROR: Raise an error if the path does not exist.
-        IGNORE: Ignore the missing path.
-        CREATE: Create the path if it does not exist.
-    """
-    WARN = "warn"
-    ERROR = "error"
-    IGNORE = "ignore"
-    CREATE = "create"
-
-
-class ItemType(Enum):
-    """
-    Enum representing the type of a file system item.
-
-    Attributes:
-        FILE: Represents a file.
-        DIR: Represents a directory.
-    """
-    FILE = "file"
-    DIR = "dir"
 
 
 def isDir(target: "FileSystemItem") -> " _tt.TypeIs[Directory]":
@@ -74,7 +49,7 @@ def isFile(target: "FileSystemItem") -> " _tt.TypeIs[File]":
 def createItem(
     path: _tt.Pathable,
     unExistsMode: UnExistsMode = UnExistsMode.WARN,
-    errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+    errorMode: ErrorMode = ErrorMode.WARN,
     toAbsolute: bool = False,
     exceptType: _tt.Union[ItemType, None] = None,
 ) -> "FileSystemItem":
@@ -113,7 +88,7 @@ class FileSystemItemBase(_tt.abc.ABC):
     Abstract base class for file and directory objects.
 
     Attributes:
-        path (Path): The path to the file or directory.
+        path (Path): The path to the file or directory. :no-index:
     """
 
     path: Path
@@ -133,7 +108,7 @@ class FileSystemItemBase(_tt.abc.ABC):
         self,
         path: _tt.Pathable,
         unExistsMode: UnExistsMode = UnExistsMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
         toAbsolute: bool = False,
         exceptType: _tt.Union[ItemType, None] = None,
     ):
@@ -547,8 +522,8 @@ class Directory(FileSystemItemBase):
         target: _tt.RelativePathable,
         createType: ItemType = ItemType.FILE,
         *,
-        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        existsErrorMode: ErrorMode = ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "FileSystemItem":
         """
         Create a file or directory in this directory.
@@ -575,8 +550,8 @@ class Directory(FileSystemItemBase):
         self,
         target: _tt.RelativePathable,
         *,
-        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        existsErrorMode: ErrorMode = ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "File":
         """
         Create a file in this directory.
@@ -606,8 +581,8 @@ class Directory(FileSystemItemBase):
         self,
         target: _tt.RelativePathable,
         *,
-        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        existsErrorMode: ErrorMode = ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "Directory":
         """
         Create a directory in this directory.
@@ -639,7 +614,7 @@ class Directory(FileSystemItemBase):
         *,
         exceptType: ItemType = ItemType.FILE,
         unExistsMode: UnExistsMode = UnExistsMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "FileSystemItem":
         """
         Get a file or directory in this directory.
@@ -667,7 +642,7 @@ class Directory(FileSystemItemBase):
         target: _tt.RelativePathable,
         *,
         unExistsMode: UnExistsMode = UnExistsMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "File":
         """
         Get a file in this directory.
@@ -701,7 +676,7 @@ class Directory(FileSystemItemBase):
         target: _tt.RelativePathable,
         *,
         unExistsMode: UnExistsMode = UnExistsMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "Directory":
         """
         Get a directory in this directory.
@@ -801,8 +776,8 @@ class Directory(FileSystemItemBase):
         target: str,
         *,
         createType: ItemType = ItemType.FILE,
-        existsErrorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        existsErrorMode: ErrorMode = ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "FileSystemItem":
         """
         Create a file or directory in this directory.
@@ -837,7 +812,7 @@ class Directory(FileSystemItemBase):
         *,
         exceptType: ItemType = ItemType.FILE,
         unExistsMode: UnExistsMode = UnExistsMode.WARN,
-        errorMode: _ex.ErrorMode = _ex.ErrorMode.WARN,
+        errorMode: ErrorMode = ErrorMode.WARN,
     ) -> "FileSystemItem":
         """
         Get a file or directory in this directory.
