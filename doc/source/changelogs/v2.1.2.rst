@@ -4,3 +4,5 @@ Version 2.1.2
 - Use Sphinx to generate documentation
 - Move enum class to a separate file
 - Optimize document annotations
+
+For more details, please refer to the `changelog <https://github.com/kuankuan2007/do-folder/compare/v2.1.0...v2.1.2>`__.
