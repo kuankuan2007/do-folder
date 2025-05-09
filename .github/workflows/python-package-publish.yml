@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Build release distributions
         run: |
@@ -69,7 +69,7 @@ jobs:
         with:
           packages-dir: dist/
 
-  github-release:
+  github-release-dist:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -101,7 +101,7 @@ jobs:
           asset_path: ${{ steps.set-tar-gz-file.outputs.file }}
           asset_name: ${{ steps.set-tar-gz-file.outputs.filename }}
           asset_content_type: application/octet-stream
-      
+
       - name: find wheel file
         run: |
           find dist -name "*.whl" | while read file; do
@@ -119,4 +119,57 @@ jobs:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ${{ steps.set-wheel-file.outputs.file }}
           asset_name: ${{ steps.set-wheel-file.outputs.filename }}
+          asset_content_type: application/octet-stream
+
+  doc-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build Doc
+        run: |
+          python -m pip install -r requirements.txt
+          python ./buildDoc.py
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-docs
+          path: temp/
+  github-release-doc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - doc-build
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-docs
+          path: temp/
+      - name: find zip file
+        run: |
+          find dist -name "*.zip" | while read file; do
+            filename=$(basename "$file")
+            echo "file=$file" >> $GITHUB_OUTPUT
+            echo "filename=$filename" >> $GITHUB_OUTPUT
+          done
+        id: set-zip-file
+
+      - name: Upload zip files to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ steps.set-zip-file.outputs.file }}
+          asset_name: ${{ steps.set-zip-file.outputs.filename }}
           asset_content_type: application/octet-stream

@@ -16,6 +16,7 @@ from sphinx._cli.util.colour import disable_colour
 import sphinx.ext
 import sphinx.ext.apidoc
 import sphinx.ext.apidoc._generate as apidoc_generate
+import zipfile
 
 from sphinx.ext.apidoc._shared import ApidocOptions
 
@@ -193,7 +194,6 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
                 "logs": [i.name for i in LOG_DIR.iterdir()],
             }
 
-            
             try:
                 import doc.source.conf as conf
 
@@ -227,10 +227,18 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
             sys.stdout = _stdout  # Restore original stdout
             sys.stderr = _stderr  # Restore original stderr
 
+    # Compress the output directory into a zip file
+    zip_path = Path(f"./temp/{pyproject['project']['name']}-{pyproject['project']['version']}.doc.zip")
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for file in OUT_DIR.rglob("*"):
+            zipf.write(file, file.relative_to(OUT_DIR))
+
     print("Documentation build complete.")
     print(f"Logs are available in {LOG_DIR}")
     print(f"Documentation is available in {OUT_DIR}")
     print(f"Build info is available in {OUT_DIR / 'buildInfo.json'}")
+    print(f"Compressed documentation is available at {zip_path}")
 
 
 def main():
