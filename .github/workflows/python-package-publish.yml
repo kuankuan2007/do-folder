@@ -157,7 +157,7 @@ jobs:
           path: temp/
       - name: find zip file
         run: |
-          find dist -name "*.zip" | while read file; do
+          find temp -name "*.zip" | while read file; do
             filename=$(basename "$file")
             echo "file=$file" >> $GITHUB_OUTPUT
             echo "filename=$filename" >> $GITHUB_OUTPUT
