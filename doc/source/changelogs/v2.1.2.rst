@@ -1,0 +1,6 @@
+Version 2.1.2
+==============
+
+- Use Sphinx to generate documentation
+- Move enum class to a separate file
+- Optimize document annotations

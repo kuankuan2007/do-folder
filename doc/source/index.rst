@@ -15,6 +15,7 @@ Package Structure
 
 .. toctree::
    ./apis/doFolder.rst
+   ./changelog.rst
    :maxdepth: 4
 
 Open Source

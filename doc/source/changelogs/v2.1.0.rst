@@ -1,0 +1,6 @@
+Version 2.1
+============
+
+- The object structure was redesigned
+- Add ``createItem`` method to create a file or directory automatically
+- Redesign the ``get``, ``create``, ``has`` methods of the ``Directory`` class
