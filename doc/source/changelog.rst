@@ -1,6 +1,8 @@
 Change Log
 ~~~~~~~~~~
 
+.. include:: ./changelogs/v2.1.3.rst
+
 .. include:: ./changelogs/v2.1.2.rst
 
 .. include:: ./changelogs/v2.1.0.rst
