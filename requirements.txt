@@ -7,3 +7,4 @@ mypy
 build
 myst_parser
 sphinx
+ksphinx==0.1.1
