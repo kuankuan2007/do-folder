@@ -60,9 +60,7 @@ html_additional_pages = {"buildInfo": "buildInfo.html"}
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "ksphinx"  # 自定义主题名称
-html_theme_path = ["./_themes"]  # 自定义主题路径
 html_static_path = ["_static"]
 
 
-html_js_files = ["ksphinx.js", "highlight.min.js"]
 # html_domain_indices = False
