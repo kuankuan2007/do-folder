@@ -45,7 +45,7 @@ class DirectoryDifference(Difference):
     and can include further sub-differences.
     """
 
-    sub: tuple["Difference", ...] = field(default_factory=tuple)
+    sub: _tt.Tuple["Difference", ...] = field(default_factory=tuple)
 
     def toFlat(self) -> "_tt.Tuple[Difference,...]":
         res=(self, )
