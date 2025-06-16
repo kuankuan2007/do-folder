@@ -11,3 +11,9 @@ def pytest_addoption(parser):
         default=False,
         help="Do not use the installed package, use the local package instead",
     )
+    parser.addoption(
+        "--keep-temp",
+        action="store_true",
+        default=False,
+        help="Do not delete temporary files after test runs",
+    )

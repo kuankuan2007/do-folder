@@ -5,11 +5,10 @@ type system across different Python versions.
 It is commonly imported as `_tt` in other modules for type hinting purposes.
 """
 
-# pylint: disable=unused-import
+# pylint: disable=unused-import, no-name-in-module
 import abc
 import sys
 from pathlib import Path
-
 from typing_extensions import (
     List,
     Dict,
@@ -33,6 +32,8 @@ from typing_extensions import (
     Self,
     TypeIs,
 )
+from .enums import ErrorMode, UnExistsMode, ItemType, CompareModeFlag, CompareMode
+
 
 if sys.version_info >= (3, 10):
     from collections.abc import Callable
@@ -52,3 +53,5 @@ Represents a path that can be relative and provided as:
 - A `Path` object.
 - An iterable of strings representing path components.
 """
+
+CompareModeItem = Union[CompareModeFlag, CompareMode]

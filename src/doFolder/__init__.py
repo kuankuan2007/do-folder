@@ -16,7 +16,7 @@ example:
 
 from .fileSystem import File, Directory, ItemType, UnExistsMode, Folder, createItem, isDir
 from .path import Path
-
+from . import compare
 __all__ = [
     "File",
     "Directory",

@@ -17,9 +17,6 @@ from . import (
 )  # pylint: disable=unused-import
 
 
-
-
-
 def isDir(target: "FileSystemItem") -> " _tt.TypeIs[Directory]":
     """
     Determine if the given target is a directory.
@@ -81,6 +78,21 @@ def createItem(
     return (Directory if exceptType == ItemType.DIR else File)(
         path, unExistsMode, errorMode, toAbsolute, exceptType=exceptType
     )
+
+
+def toFileSystemItem(fr: "FileSystemItemLike") -> "FileSystemItem":
+    """
+    Convert a FileSystemItemLike object to a FileSystemItem.
+
+    Args:
+        fr (FileSystemItemLike): The object to convert.
+
+    Returns:
+        FileSystemItem: The converted FileSystemItem object.
+    """
+    if isinstance(fr, FileSystemItemBase):
+        return fr
+    return createItem(fr)
 
 
 class FileSystemItemBase(_tt.abc.ABC):
@@ -173,6 +185,10 @@ class FileSystemItemBase(_tt.abc.ABC):
             bool: True if the item type matches, False otherwise.
         """
         return self.itemType == itemType
+
+    def torch(self):
+        """Create a new file system item ."""
+        self.createSelf()
 
     @_tt.abc.abstractmethod
     def createSelf(self) -> None:
@@ -279,6 +295,7 @@ class FileSystemItemBase(_tt.abc.ABC):
         Delete the item.
         """
         raise NotImplementedError("delete is not implemented")
+
 
 
 class File(FileSystemItemBase):
@@ -492,7 +509,11 @@ class Directory(FileSystemItemBase):
         """
         _shutil.move(self.path, target)
         self.path = Path(target)
-
+    def iterdir(self):
+        """
+        Iterate over the files and directories in this directory.
+        """
+        return self.path.iterdir()
     def __iter__(self) -> "_tt.Iterator[FileSystemItem]":
         """
         Iterate over the files and directories in this directory.
@@ -500,10 +521,7 @@ class Directory(FileSystemItemBase):
         Yields:
             FileSystemItem: Each file or directory in the directory.
         """
-        l = self.path.iterdir()
-
-        for i in l:
-            yield createItem(i)
+        yield from map(createItem, self.path.iterdir())
 
     def __getitem__(self, name: str) -> "FileSystemItem":
         """
@@ -631,7 +649,6 @@ class Directory(FileSystemItemBase):
         return self.deepCall(
             target,
             "_get",
-            allowedTargetType=unExistsMode == UnExistsMode.CREATE,
             unExistsMode=unExistsMode,
             errorMode=errorMode,
             exceptType=exceptType,
@@ -661,7 +678,6 @@ class Directory(FileSystemItemBase):
         res = self.deepCall(
             target,
             "_get",
-            allowedTargetType=unExistsMode == UnExistsMode.CREATE,
             unExistsMode=unExistsMode,
             errorMode=errorMode,
             exceptType=ItemType.FILE,
@@ -695,7 +711,6 @@ class Directory(FileSystemItemBase):
         res = self.deepCall(
             target,
             "_get",
-            allowedTargetType=unExistsMode == UnExistsMode.CREATE,
             unExistsMode=unExistsMode,
             errorMode=errorMode,
             exceptType=ItemType.FILE,
@@ -865,23 +880,26 @@ class Directory(FileSystemItemBase):
         Returns:
             bool: True if the target exists, False otherwise.
         """
-        _target = target.path if isinstance(
-            target, FileSystemItemBase) else target
+        _target = target.path if isinstance(target, FileSystemItemBase) else target
 
         return self.has(
             _target,
             allowedTargetType=(
-                target.itemType if isinstance(
-                    target, FileSystemItemBase) else None
+                target.itemType if isinstance(target, FileSystemItemBase) else None
             ),
         )
 
 
 FileSystemItem = _tt.Union[File, Directory]
 
+FileSystemItemLike = _tt.Union[_tt.Pathable, "FileSystemItem"]
+
 
 @_deprecated("Use Directory instead")
 class Folder(Directory):
     """
     Deprecated: Use the Directory class instead.
+
+    .. deprecated:: 2.0.0
+       This class is deprecated and will be removed in a future release. Use `Directory` instead.
     """
