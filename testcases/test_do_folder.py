@@ -1,7 +1,8 @@
 # pyint: ignore
-from tempfile import TemporaryDirectory
+from tempfile import gettempdir
 import random
 import pytest
+import shutil
 from pathlib import Path
 
 import sys
@@ -22,7 +23,6 @@ else:
 
 
 root: Path
-TEMP_DIR: TemporaryDirectory
 
 
 def randomString(l=10):
@@ -34,19 +34,21 @@ def randomFileContent(l=500):
 
 
 def setup_module(module):
-    global TEMP_DIR, root
-    TEMP_DIR = TemporaryDirectory(
-        prefix="pytest-doFolder-", delete=not "--keep-temp" in sys.argv
-    )
-    root = Path(TEMP_DIR.name)
-    print(f"\nTemp directory: {TEMP_DIR.name}")
+    global  root
+    while True:
+        root=Path(gettempdir())/ f"pytest-doFolder-{randomString(5)}"
+        if not root.exists():
+            break
+    root.mkdir(parents=True, exist_ok=True)
+
+    print(f"\nRoot directory: {root}")
 
 
 def teardown_module(module):
     if "--keep-temp" in sys.argv:
-        print(f"\nKeeping temporary directory at {TEMP_DIR.name}")
+        print(f"\nKeeping temporary directory at {root}")
     else:
-        TEMP_DIR.cleanup()
+        shutil.rmtree(root)
 
 
 class TestFileSystem:
