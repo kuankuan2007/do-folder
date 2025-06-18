@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doFolder"
-version = "2.2.1"
+version = "2.2.1post1"
 description = "Manage files more easily"
 authors = [
     { name = "kuankuan", email = "2163826131@qq.com" },
