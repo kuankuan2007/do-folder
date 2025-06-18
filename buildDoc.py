@@ -210,7 +210,7 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
                     "exception": formatError,
                 }
                 print(f"Cannot get the config: \n{formatError()}", file=sys.stderr)
-            with (OUT_DIR / "buildInfo.json").open("w", encoding="utf-8") as f:
+            with (OUT_DIR / "build-info.json").open("w", encoding="utf-8") as f:
                 json.dump(
                     buildInfo,
                     f,
