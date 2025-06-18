@@ -25,7 +25,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "build",
-      "console": "integratedTerminal",
+      "console": "integratedTerminal"
     },
     {
       "name": "Python Run Simple Test",
@@ -33,6 +33,14 @@
       "request": "launch",
       "program": "simpleTest.py",
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Sphinx Build",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/buildDoc.py",
+      "console": "integratedTerminal",
+      "justMyCode": false
     },
     {
       "name": "Python Debug",

@@ -1,5 +1,7 @@
 """
 This module provides apis to compare file system items and determine differences between them.
+
+.. versionadded:: 2.0.0
 """
 
 from dataclasses import dataclass, field
@@ -32,6 +34,7 @@ class Difference:
 
     def toFlat(self) -> "_tt.Tuple[Difference,...]":
         """Converts the differences from tree structure to a flat tuple.
+        
         Returns:
             _tt.Tuple[Difference,...]: A tuple containing the difference.
         """

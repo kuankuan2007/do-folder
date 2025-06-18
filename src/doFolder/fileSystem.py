@@ -89,6 +89,8 @@ def toFileSystemItem(fr: "FileSystemItemLike") -> "FileSystemItem":
 
     Returns:
         FileSystemItem: The converted FileSystemItem object.
+
+    .. versionadded:: 2.2.0
     """
     if isinstance(fr, FileSystemItemBase):
         return fr
@@ -101,6 +103,8 @@ class FileSystemItemBase(_tt.abc.ABC):
 
     Attributes:
         path (Path): The path to the file or directory. :no-index:
+    
+    .. versionadded:: 2.1.0
     """
 
     path: Path
@@ -187,7 +191,11 @@ class FileSystemItemBase(_tt.abc.ABC):
         return self.itemType == itemType
 
     def torch(self):
-        """Create a new file system item ."""
+        """
+        Create a new file system item .
+
+        .. versionadded:: 2.2.0
+        """
         self.createSelf()
 
     @_tt.abc.abstractmethod
@@ -297,12 +305,15 @@ class FileSystemItemBase(_tt.abc.ABC):
         raise NotImplementedError("delete is not implemented")
 
 
-
 class File(FileSystemItemBase):
     """
     Represents a file in the file system.
 
     Provides methods for file operations such as reading, writing, copying, and deleting.
+
+    .. versionchanged:: 2.1.0
+        class File is no longer the base class of the file system, 
+        but a subclass of FileSystemItemBase.
     """
 
     @property
@@ -406,6 +417,8 @@ class File(FileSystemItemBase):
 
         Returns:
             Any: The parsed JSON content.
+
+        .. versionadded:: 2.0.3
         """
         with self.open("r", encoding=encoding) as file:
             return json.load(file, **kw)
@@ -442,6 +455,8 @@ class File(FileSystemItemBase):
             default (callable, optional): Custom serialization function. Defaults to None.
             sort_keys (bool, optional): Sort keys in the output. Defaults to False.
             **kw: Additional arguments for the json.dump function.
+
+        .. versionadded:: 2.0.3
         """
         with self.open("w", encoding=encoding) as file:
             json.dump(
@@ -466,6 +481,12 @@ class Directory(FileSystemItemBase):
 
     Provides methods for directory operations such as creating,
     deleting, copying, and iterating over contents.
+
+    .. versionadded:: 2.0.0
+
+    .. versionchanged:: 2.1.0
+        class Directory is no longer a subclass of File, 
+        but directly inherits from FileSystemItemBase.
     """
 
     @property
@@ -509,11 +530,13 @@ class Directory(FileSystemItemBase):
         """
         _shutil.move(self.path, target)
         self.path = Path(target)
+
     def iterdir(self):
         """
         Iterate over the files and directories in this directory.
         """
         return self.path.iterdir()
+
     def __iter__(self) -> "_tt.Iterator[FileSystemItem]":
         """
         Iterate over the files and directories in this directory.
@@ -891,15 +914,22 @@ class Directory(FileSystemItemBase):
 
 
 FileSystemItem = _tt.Union[File, Directory]
+"""
+.. versionadded:: 2.1.0
+"""
+
 
 FileSystemItemLike = _tt.Union[_tt.Pathable, "FileSystemItem"]
+"""
+.. versionadded:: 2.2.0
+"""
 
 
-@_deprecated("Use Directory instead")
+
+@_deprecated("Use Directory instead", version="2.0")
 class Folder(Directory):
     """
-    Deprecated: Use the Directory class instead.
-
-    .. deprecated:: 2.0.0
-       This class is deprecated and will be removed in a future release. Use `Directory` instead.
+    .. deprecated:: 2.0
+       This class is only designed to ensure the convenience for users to migrate from 1.0 to here.
+       In the new code, use "class Directory" instead
     """

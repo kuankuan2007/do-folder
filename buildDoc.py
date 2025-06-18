@@ -178,6 +178,8 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
                 doctreedir=sphinxOptions["dist"] / ".doctrees",
                 buildername=sphinxOptions["build"],
                 status=sys.stdout, # type: ignore
+                warning=sys.stderr,  # type: ignore
+                warningiserror=True,
             ).build(
                 force_all=sphinxOptions["force"],
                 filenames=[],
