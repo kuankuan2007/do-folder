@@ -27,7 +27,7 @@ def __initVersion():
         from importlib.metadata import version # pylint: disable=import-outside-toplevel
 
         __version__ = version(__name__)
-    except ImportError:
+    except: # pylint: disable=bare-except
         pass
 
 
