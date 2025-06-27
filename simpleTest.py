@@ -1,4 +1,3 @@
-from src import doFolder
-from src.doFolder import path
-
-print(path.relativePathableFormat(path.Path("a/b/c"), path.Path('./').absolute()))
+from src.doFolder import cli
+import doFolder
+cli.doCompare()

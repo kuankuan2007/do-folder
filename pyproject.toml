@@ -6,9 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "doFolder"
 version = "2.2.2post1"
 description = "Manage files more easily"
-authors = [
-    { name = "kuankuan", email = "2163826131@qq.com" },
-]
+authors = [{ name = "kuankuan", email = "2163826131@qq.com" }]
 readme = "README.md"
 license = "MulanPSL-2.0"
 requires-python = ">=3.8"
@@ -22,8 +20,13 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
 ]
-keywords = ["folder", "file", "manage","filesystem",'directory']
-dependencies = ["exceptiongroup", "typing_extensions>=4.10.0", "deprecated"]
+keywords = ["folder", "file", "manage", "filesystem", 'directory']
+dependencies = [
+    "exceptiongroup",
+    "typing_extensions>=4.10.0",
+    "deprecated",
+    "rich",
+]
 license-files = ["LICENSE"]
 
 [project.urls]
@@ -31,10 +34,12 @@ Repository = "https://github.com/kuankuan2007/do-folder"
 Issues = "https://github.com/kuankuan2007/do-folder/issues"
 Documentation = "https://do-folder.doc.kuankuan.site"
 
+[project.scripts]
+do-compare = "doFolder.cli:compareCli"
+do-folder = "doFolder.__main__:main"
+
 [tool.mypy]
 
 python_version = "3.12"
 
-exclude = [
-    '^testcases\.py$',
-]
+exclude = ['^testcases\.py$']

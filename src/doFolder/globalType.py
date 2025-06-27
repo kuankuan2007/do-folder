@@ -9,6 +9,8 @@ It is commonly imported as `_tt` in other modules for type hinting purposes.
 import abc
 import sys
 from pathlib import Path
+from types import TracebackType
+
 from typing_extensions import (
     List,
     Dict,
@@ -31,6 +33,7 @@ from typing_extensions import (
     Sequence,
     Self,
     TypeIs,
+    Type,
 )
 from .enums import ErrorMode, UnExistsMode, ItemType, CompareModeFlag, CompareMode
 

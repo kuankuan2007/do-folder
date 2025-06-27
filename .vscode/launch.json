@@ -32,7 +32,8 @@
       "type": "debugpy",
       "request": "launch",
       "program": "simpleTest.py",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "justMyCode": false
     },
     {
       "name": "Sphinx Build",

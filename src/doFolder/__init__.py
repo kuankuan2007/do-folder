@@ -20,7 +20,7 @@ from .path import Path
 from . import compare
 
 __version__="unknown"
-def __initVersion():
+def __initVersion(): # pylint: disable=invalid-name
     global __version__ # pylint: disable=global-statement
     try:
         assert "." not in __name__
