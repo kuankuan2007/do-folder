@@ -425,7 +425,7 @@ def _compareCli(
 
         def showTable():
             _table = _rich_table.Table(
-                *(_rich_table.Column(**i) for i in tableColumns),
+                *(_rich_table.Column(**_tt.cast(_tt.Any, i)) for i in tableColumns),
                 **tableArgs,
             )
             for item in diffList:

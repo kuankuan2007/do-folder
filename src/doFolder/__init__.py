@@ -14,24 +14,20 @@ example:
 :license: MulanPSL-2.0, see LICENSE for more details.
 """
 
-
-from .fileSystem import File, Directory, ItemType, UnExistsMode, Folder, createItem, isDir
+from .fileSystem import (
+    File,
+    Directory,
+    ItemType,
+    UnExistsMode,
+    Folder,
+    createItem,
+    isDir,
+)
 from .path import Path
 from . import compare
-
-__version__="unknown"
-def __initVersion(): # pylint: disable=invalid-name
-    global __version__ # pylint: disable=global-statement
-    try:
-        assert "." not in __name__
-        from importlib.metadata import version # pylint: disable=import-outside-toplevel
-
-        __version__ = version(__name__)
-    except: # pylint: disable=bare-except
-        pass
+from .__pkginfo__ import __version__
 
 
-__initVersion()
 __all__ = [
     "File",
     "Directory",

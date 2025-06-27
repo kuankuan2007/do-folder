@@ -179,7 +179,7 @@ function-naming-style = "camelCase"
 # The name __main__ was added here to avoid the invalid-name warning for the __main__ module.
 # I have submitted this false positive in issue #10442 (https://github.com/pylint-dev/pylint/issues/10442)
 # This was a reluctant move before it was fixed.
-good-names = ["i", "j", "k", "ex", "Run", "_", "__main__"] 
+good-names = ["i", "j", "k", "ex", "Run", "_", "__main__", '__pkginfo__']
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
