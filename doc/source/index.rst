@@ -18,6 +18,11 @@ Package Structure
    ./changelog.rst
    :maxdepth: 4
 
+Command Line Interface
+----------------------- 
+
+.. toctree:: ./cli.rst
+
 Open Source
 -----------
 
