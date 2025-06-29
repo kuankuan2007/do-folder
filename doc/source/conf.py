@@ -11,6 +11,11 @@ import os
 import sys
 from pathlib import Path
 import tomllib
+import importlib
+
+pkgDir = Path(__file__).parent.parent
+
+sys.path.insert(0, (str(pkgDir)))
 
 with (Path(__file__).parent.parent.parent / "pyproject.toml").open("rb") as f:
     pyproject = tomllib.load(f)
@@ -18,7 +23,7 @@ with (Path(__file__).parent.parent.parent / "pyproject.toml").open("rb") as f:
 project = pyproject["project"]["name"]
 author = pyproject["project"]["authors"][0]["name"]
 copyright = f"2023-{datetime.datetime.now().year}, {author}"
-release = pyproject["project"]["version"]
+release = importlib.import_module("tools.getInfo").getInfo().version
 
 # Add src/doFolder to sys.path
 sys.path.insert(0, os.path.abspath("../../src"))

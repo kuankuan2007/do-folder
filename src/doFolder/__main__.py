@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from .cli import compareCli
+from . import __pkgname__, __version__
 
 subcommands = {
     "compare": compareCli,
@@ -16,6 +17,9 @@ def main():
     """The union entry point for the doFolder CLI."""
     parser = argparse.ArgumentParser()
     parser.add_argument("subcommand", help="something to do", choices=["compare"])
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"{__pkgname__} {__version__}"
+    )
     parser.add_argument(
         "args", nargs=argparse.REMAINDER, help="arguments for the subcommand"
     )

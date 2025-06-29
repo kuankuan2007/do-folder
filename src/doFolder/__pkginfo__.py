@@ -4,3 +4,4 @@ It contains metadata about the package, such as its version.
 """
 
 __version__ = "2.3.0-alpha.1"
+__pkgname__ = "doFolder"
