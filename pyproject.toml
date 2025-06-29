@@ -38,11 +38,5 @@ Documentation = "https://do-folder.doc.kuankuan.site"
 do-compare = "doFolder.cli:compareCli"
 do-folder = "doFolder.__main__:main"
 
-[tool.mypy]
-
-python_version = "3.12"
-
-exclude = ['^testcases\.py$']
-
 [tool.setuptools.dynamic]
 version = { attr = "doFolder.__pkginfo__.__version__" }
