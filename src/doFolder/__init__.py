@@ -25,7 +25,7 @@ from .fileSystem import (
 )
 from .path import Path
 from . import compare
-from .__pkginfo__ import __version__
+from .__pkginfo__ import __version__, __pkgname__
 
 
 __all__ = [

@@ -1,5 +1,7 @@
 """
 Define the CLI for doFolder.
+
+.. versionadded:: 2.3.0
 """
 
 # pylint: disable=import-outside-toplevel, line-too-long
@@ -18,6 +20,8 @@ from . import (
     compare as _compare,
     exception as _ex,
     sort as _sort,
+    __version__,
+    __pkgname__,
 )
 
 console = _rich.get_console()
@@ -103,6 +107,12 @@ def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
         choices=["ALWAYS", "NEVER", "AUTO"],
         default="AUTO",
         help="Relative timestamp format: AUTO for automatic detection, ALWAYS for always relative, NEVER for absolute timestamps. Default is AUTO, and using the -r parameter alone indicates ALWAYS.",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"{__pkgname__} {__version__}",
     )
     args = parser.parse_args(arguments)
     return _compareCli(
