@@ -7,5 +7,5 @@ doFolder is a comprehensive file and directory management toolkit that
 provides object-oriented interfaces for cross-platform file operations.
 """
 
-__version__ = "2.2.2-post1"
+__version__ = "2.2.3"
 __pkgname__ = 'doFolder'
