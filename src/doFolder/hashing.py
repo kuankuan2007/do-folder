@@ -6,10 +6,13 @@ This module provides functions to calculate hashes of files or byte content.
 
 import hashlib
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, Future
-from . import globalType as _tt, fileSystem as _fs
+from . import globalType as _tt
 from .enums import ReCalcHashMode
+
+if _tt.TYPE_CHECKING:
+    from . import fileSystem as _fs # pylint: disable=cyclic-import
 
 
 DEFAULT_HASH_ALGORITHM = "sha256"
@@ -24,7 +27,7 @@ class FileHashResult:
 
     hash: str
     algorithm: str
-    path: _fs.Path
+    path: "_fs.Path"
     mtime: float
     calcTime: float
 
@@ -114,6 +117,7 @@ def fileHash(
     )
 
 
+@dataclass
 class FileHashCalculator:
     """
     A class for calculating file hashes.
@@ -122,7 +126,7 @@ class FileHashCalculator:
         useCache (bool, optional): Whether to use a cache for faster lookups.
                 Defaults to True.
         reCalcHashMode (ReCalcHashMode, optional): The mode for re-calculating the hash.
-                Defaults to ReCalcHashMode.TIMETAG_AND_SIZE.
+                Defaults to ReCalcHashMode.TIMETAG.
         chunkSize (int, optional): The size of each chunk to read from the file.
                 Defaults to DEFAULT_CHUNK_SIZE.
         fileIOMinSize (int, optional): The minimum size of the file to use file IO instead of content.
@@ -131,27 +135,12 @@ class FileHashCalculator:
                 Defaults to DEFAULT_HASH_ALGORITHM.
     """
 
-    cache: dict[_fs.Path, FileHashResult] = {}
+    useCache: bool = True
+    reCalcHashMode: ReCalcHashMode = ReCalcHashMode.TIMETAG
     chunkSize: int = DEFAULT_CHUNK_SIZE
     fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE
     algorithm: str = DEFAULT_HASH_ALGORITHM
-    reCalcHashMode: ReCalcHashMode = ReCalcHashMode.TIMETAG
-    useCache: bool = True
-
-    def __init__(
-        self,
-        *,
-        useCache: bool = True,
-        reCalcHashMode: ReCalcHashMode = ReCalcHashMode.TIMETAG,
-        chunkSize: int = DEFAULT_CHUNK_SIZE,
-        fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE,
-        algorithm: str = DEFAULT_HASH_ALGORITHM,
-    ) -> None:
-        self.chunkSize = chunkSize
-        self.fileIOMinSize = fileIOMinSize
-        self.algorithm = algorithm
-        self.reCalcHashMode = reCalcHashMode
-        self.useCache = useCache
+    cache: "dict[_fs.Path, FileHashResult]" = field(default_factory=dict)
 
     def get(self, file: "_fs.File") -> FileHashResult:
         """Get the hash of the given file."""
@@ -200,28 +189,16 @@ class FileHashCalculator:
         return res
 
 
+@dataclass
 class ThreadedFileHashCalculator(FileHashCalculator):
     """A class for calculating file hashes in a threaded manner."""
 
-    def __init__(
-        self,
-        *,
-        useCache: bool = True,
-        reCalcHashMode: ReCalcHashMode = ReCalcHashMode.TIMETAG,
-        chunkSize: int = DEFAULT_CHUNK_SIZE,
-        fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE,
-        algorithm: str = DEFAULT_HASH_ALGORITHM,
-        threadNum: int = DEFAULT_THREAD_NUM,
-    ) -> None:
-        super().__init__(
-            useCache=useCache,
-            reCalcHashMode=reCalcHashMode,
-            chunkSize=chunkSize,
-            fileIOMinSize=fileIOMinSize,
-            algorithm=algorithm,
-        )
-        self.threadNum = threadNum
-        self.threadPool = ThreadPoolExecutor(max_workers=threadNum)
+    threadNum: int = DEFAULT_THREAD_NUM
+    threadPool: ThreadPoolExecutor = field(init=False)
+
+    def __post_init__(self):
+        """Initialize the thread pool after dataclass initialization."""
+        self.threadPool = ThreadPoolExecutor(max_workers=self.threadNum)
 
     def threadedGet(self, file: "_fs.File") -> Future[FileHashResult]:
         """Get the hash of the given file in a threaded manner."""

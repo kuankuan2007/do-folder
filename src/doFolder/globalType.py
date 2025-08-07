@@ -32,7 +32,8 @@ from typing_extensions import (
     Self,
     TypeIs,
     Generator,
-    TypedDict
+    TypedDict,
+    TYPE_CHECKING
 )
 from .enums import ErrorMode, UnExistsMode, ItemType, CompareModeFlag, CompareMode
 

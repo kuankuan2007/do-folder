@@ -42,7 +42,7 @@ ignore = [
     "temp",
     "simpleTest.py",
     "doc",
-    'buildDoc.py',
+    'tools',
     'venv',
     '.venv',
 ]
