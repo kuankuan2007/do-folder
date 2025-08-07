@@ -34,9 +34,9 @@ def randomFileContent(l=500):
 
 
 def setup_module(module):
-    global  root
+    global root
     while True:
-        root=Path(gettempdir())/ f"pytest-doFolder-{randomString(5)}"
+        root = Path(gettempdir()) / f"pytest-doFolder-{randomString(5)}"
         if not root.exists():
             break
     root.mkdir(parents=True, exist_ok=True)
@@ -266,6 +266,74 @@ class TestFileSystem:
             path / "test7/test8"
         ).is_file(), f"Expected file 'test7/test8' to be created in {path}, but it does not exist. Check the createFile method."
 
+    def test_recursive_traversal(self):
+
+        path = root / "test_recursive_traversal"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        d.createFile("test1").content = randomFileContent().encode("utf8")
+        d.createFile("test2").content = randomFileContent().encode("utf8")
+        t3 = d.createDir("test3")
+        t3.createFile("test4").content = randomFileContent().encode("utf8")
+        t3.createFile("test5").content = randomFileContent().encode("utf8")
+        t6 = t3.createDir("test6")
+        t6.createFile("test7").content = randomFileContent().encode("utf8")
+        t6.createFile("test8").content = randomFileContent().encode("utf8")
+        t9 = t3.createDir("test9")
+        t9.createFile("test10").content = randomFileContent().encode("utf8")
+        t9.createFile("test11").content = randomFileContent().encode("utf8")
+        t12 = t9.createDir("test12")
+        t12.createFile("test13").content = randomFileContent().encode("utf8")
+        t12.createFile("test14").content = randomFileContent().encode("utf8")
+
+        res1 = tuple(i.path for i in d.recursiveTraversal())
+        exceptRes1 = [
+            d["test1"],
+            d["test2"],
+            t3["test4"],
+            t3["test5"],
+            t6["test7"],
+            t6["test8"],
+            t9["test10"],
+            t9["test11"],
+            t12["test13"],
+            t12["test14"],
+        ]
+
+        assert len(res1) == len(
+            exceptRes1
+        ), "Expected the number of items in the result to match the number of expected items, but they do not."
+        for i in exceptRes1:
+            assert (
+                i.path in res1
+            ), f"Expected item {i} to be in the result, but it is not."
+        
+        res2= tuple(i.path for i in d.recursiveTraversal(hideDirectory=False))
+        exceptRes2 = [
+            d["test1"],
+            d["test2"],
+            t3["test4"],
+            t3["test5"],
+            t6["test7"],
+            t6["test8"],
+            t9["test10"],
+            t9["test11"],
+            t12["test13"],
+            t12["test14"],
+            t3,
+            t6,
+            t9,
+            t12,
+            d
+        ]
+        assert len(res2) == len(
+            exceptRes2
+        ), "Expected the number of items in the result to match the number of expected items, but they do not."
+        for i in exceptRes2:
+            assert (
+                i.path in res2
+            ), f"Expected item {i} to be in the result, but it is not."
+
 
 class TestCompareSystem:
     """
@@ -456,5 +524,6 @@ class TestCompareSystem:
                 d["test1"], d["test1_copy"], doFolder.compare.CompareMode.IGNORE
             )
             .toFlat()[-1]
-            .diffType == doFolder.compare.DifferenceType.NOT_EXISTS
+            .diffType
+            == doFolder.compare.DifferenceType.NOT_EXISTS
         ), "Expected folders 'test1' and 'test1_copy' to be not equal, but they are."

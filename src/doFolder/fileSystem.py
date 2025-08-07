@@ -244,7 +244,8 @@ class FileSystemItemBase(_tt.abc.ABC):
         """
         Determine whether this object is a File
 
-        .. versionchanged:: 2.2.3 This method will determine the type of the current object rather than the actual type in the path.
+        .. versionchanged:: 2.2.3 This method will determine the type of the current object
+            rather than the actual type in the path.
         """
         return isFile(self)
 
@@ -252,7 +253,8 @@ class FileSystemItemBase(_tt.abc.ABC):
         """
         Determine whether this object is a Directory
 
-        .. versionchanged:: 2.2.3 TThis method will determine the type of the current object rather than the actual type in the path.
+        .. versionchanged:: 2.2.3 This method will determine the type of the current object
+            rather than the actual type in the path.
         """
         return isDir(self)
 
@@ -558,7 +560,7 @@ class Directory(FileSystemItemBase):
 
     @_tt.overload
     def recursiveTraversal(
-        self, hideDirectory: _tt.Literal[True]
+        self, hideDirectory: _tt.Literal[True] = True
     ) -> "_tt.Generator[File]": ...
 
     @_tt.overload
@@ -566,7 +568,7 @@ class Directory(FileSystemItemBase):
         self, hideDirectory: _tt.Literal[False]
     ) -> "_tt.Generator[FileSystemItem]": ...
 
-    def recursiveTraversal(self, hideDirectory: bool):
+    def recursiveTraversal(self, hideDirectory: bool = True):
         """
         Recursively traverse the directory and its subdirectories.
 
