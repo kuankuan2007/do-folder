@@ -1,7 +1,7 @@
 """
 This module provides apis to compare file system items and determine differences between them.
 
-.. versionadded:: 2.0.0
+.. versionadded:: 2.2.0
 """
 
 from dataclasses import dataclass, field
