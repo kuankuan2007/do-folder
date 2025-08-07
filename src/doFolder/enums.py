@@ -1,5 +1,8 @@
 """
-This module defines some enums used throughout the library.
+Enumeration definitions for doFolder file system operations and configurations.
+
+This module defines comprehensive enums that control behavior across the doFolder library,
+including error handling modes, file system item types, comparison strategies, and hash recalculation policies.
 """
 
 from enum import Enum, Flag, auto
@@ -7,7 +10,8 @@ from enum import Enum, Flag, auto
 
 class ErrorMode(Enum):
     """
-    Enum representing modes for handling errors or warnings.
+    Defines how the library handles error conditions during file system operations.
+    Controls whether operations should raise exceptions, emit warnings, or silently ignore issues.
     """
 
     WARN = "warn"
@@ -17,7 +21,8 @@ class ErrorMode(Enum):
 
 class UnExistsMode(Enum):
     """
-    Enum representing the behavior when a path does not exist.
+    Specifies behavior when attempting to operate on non-existent file system paths.
+    Determines whether to create missing paths, raise errors, emit warnings, or ignore the condition.
     """
 
     WARN = "warn"
@@ -28,7 +33,8 @@ class UnExistsMode(Enum):
 
 class ItemType(Enum):
     """
-    Enum representing the type of a file system item.
+    Distinguishes between file system item types for creation and type checking operations.
+    Used throughout the library to specify whether operations target files or directories.
     """
 
     FILE = "file"
@@ -37,7 +43,8 @@ class ItemType(Enum):
 
 class CompareModeFlag(Flag):
     """
-    Enum representing the mode for comparing items.
+    Individual comparison criteria flags that can be combined using bitwise operations.
+    These flags form the building blocks for comprehensive file and directory comparison strategies.
     """
 
     TIMETAG = auto()
@@ -47,7 +54,8 @@ class CompareModeFlag(Flag):
 
 class CompareMode(Enum):
     """
-    Enum representing the mode for comparing items.
+    Predefined comparison strategies for file and directory comparison operations.
+    Combines individual comparison flags to provide commonly used comparison modes with optimized performance.
     """
 
     TIMETAG = CompareModeFlag.TIMETAG
@@ -59,7 +67,8 @@ class CompareMode(Enum):
 
 class DifferenceType(Enum):
     """
-    Enum representing the type of difference between two file system items.
+    Categorizes the types of differences detected during file system item comparisons.
+    Used by comparison operations to classify and report specific types of discrepancies between items.
     """
 
     FILE_DIFFERENCE = "file_difference"
@@ -69,7 +78,8 @@ class DifferenceType(Enum):
 
 class ReCalcHashMode(Enum):
     """
-    Enum representing the mode for recalculating hashes.
+    Controls when file hash values should be recalculated during hash-based operations.
+    Optimizes performance by determining hash computation frequency based on file modification timestamps.
     """
 
     TIMETAG = "TIME_TAG"
