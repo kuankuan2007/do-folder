@@ -202,7 +202,7 @@ class ThreadedFileHashCalculator(FileHashCalculator):
         """Initialize the thread pool after dataclass initialization."""
         self.threadPool = ThreadPoolExecutor(max_workers=self.threadNum)
 
-    def threadedGet(self, file: "_fs.File") -> Future[FileHashResult]:
+    def threadedGet(self, file: "_fs.File") -> "Future[FileHashResult]":
         """Get the hash of the given file in a threaded manner."""
         cacheResult = self.findCache(file) if self.useCache else None
         if cacheResult is not None:

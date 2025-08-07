@@ -6,6 +6,7 @@ from pathlib import Path
 import hashlib
 import sys
 from concurrent import futures
+import time
 
 if "--no-install" in sys.argv:
     pkgDir = Path(__file__).parent.parent
@@ -577,6 +578,9 @@ class TestCompareSystem:
         obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.ALWAYS
 
         res3 = obj1.get(f1)
+
+        time.sleep(1)
+
         res4 = obj1.get(f1)
 
         assert res3.calcTime != res4.calcTime and res3.hash == res4.hash
