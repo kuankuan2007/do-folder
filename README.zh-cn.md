@@ -2,12 +2,6 @@
 
 `doFolder` 是一个简单且通用的一站式文件/目录管理工具。
 
-## v1.\*.\* 的变更
-
-- 使用内置的 `pathlib` 管理路径
-- 将类名从 `Folder` 更改为 `Directory`（仍然保留对 `Folder` 名称的兼容性）
-- 在创建 `File` 类时，允许重定向到 `Directory`
-
 ## 安装
 
 ```shell

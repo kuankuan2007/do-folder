@@ -1,5 +1,6 @@
 """
 This module provides functions to compare paths and path parts.
+We use locale-aware string comparison to ensure that path parts are compared correctly
 """
 
 from functools import cmp_to_key
