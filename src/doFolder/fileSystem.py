@@ -17,7 +17,7 @@ from . import (
 )  # pylint: disable=unused-import
 
 
-def isDir(target: "FileSystemItem") -> " _tt.TypeIs[Directory]":
+def isDir(target: "FileSystemItemBase") -> " _tt.TypeIs[Directory]":
     """
     Determine if the given target is a directory.
 
@@ -30,7 +30,7 @@ def isDir(target: "FileSystemItem") -> " _tt.TypeIs[Directory]":
     return target.itemType == ItemType.DIR
 
 
-def isFile(target: "FileSystemItem") -> " _tt.TypeIs[File]":
+def isFile(target: "FileSystemItemBase") -> " _tt.TypeIs[File]":
     """
     Determine if the given target is a file.
 
@@ -103,7 +103,7 @@ class FileSystemItemBase(_tt.abc.ABC):
 
     Attributes:
         path (Path): The path to the file or directory. :no-index:
-    
+
     .. versionadded:: 2.1.0
     """
 
@@ -240,23 +240,21 @@ class FileSystemItemBase(_tt.abc.ABC):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.path}>"
 
-    def isFile(self) -> bool:
+    def isFile(self):
         """
-        Check if the item is a file.
+        Determine whether this object is a File
 
-        Returns:
-            bool: True if the item is a file, False otherwise.
+        .. versionchanged:: 2.2.3 This method will determine the type of the current object rather than the actual type in the path.
         """
-        return self.path.is_file()
+        return isFile(self)
 
-    def isDir(self) -> bool:
+    def isDir(self):
         """
-        Check if the item is a directory.
-
-        Returns:
-            bool: True if the item is a directory, False otherwise.
+        Determine whether this object is a Directory
+        
+        .. versionchanged:: 2.2.3 TThis method will determine the type of the current object rather than the actual type in the path.
         """
-        return self.path.is_dir()
+        return isDir(self)
 
     @property
     def state(self):
@@ -312,7 +310,7 @@ class File(FileSystemItemBase):
     Provides methods for file operations such as reading, writing, copying, and deleting.
 
     .. versionchanged:: 2.1.0
-        class File is no longer the base class of the file system, 
+        class File is no longer the base class of the file system,
         but a subclass of FileSystemItemBase.
     """
 
@@ -485,7 +483,7 @@ class Directory(FileSystemItemBase):
     .. versionadded:: 2.0.0
 
     .. versionchanged:: 2.1.0
-        class Directory is no longer a subclass of File, 
+        class Directory is no longer a subclass of File,
         but directly inherits from FileSystemItemBase.
     """
 
@@ -923,7 +921,6 @@ FileSystemItemLike = _tt.Union[_tt.Pathable, "FileSystemItem"]
 """
 .. versionadded:: 2.2.0
 """
-
 
 
 @_deprecated("Use Directory instead", version="2.0")
