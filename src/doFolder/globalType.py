@@ -31,6 +31,7 @@ from typing_extensions import (
     Sequence,
     Self,
     TypeIs,
+    Generator
 )
 from .enums import ErrorMode, UnExistsMode, ItemType, CompareModeFlag, CompareMode
 

@@ -251,7 +251,7 @@ class FileSystemItemBase(_tt.abc.ABC):
     def isDir(self):
         """
         Determine whether this object is a Directory
-        
+
         .. versionchanged:: 2.2.3 TThis method will determine the type of the current object rather than the actual type in the path.
         """
         return isDir(self)
@@ -535,7 +535,7 @@ class Directory(FileSystemItemBase):
         """
         return self.path.iterdir()
 
-    def __iter__(self) -> "_tt.Iterator[FileSystemItem]":
+    def __iter__(self) -> "_tt.Generator[FileSystemItem]":
         """
         Iterate over the files and directories in this directory.
 
@@ -555,6 +555,35 @@ class Directory(FileSystemItemBase):
             FileSystemItem: The file or directory object.
         """
         return self._get(name, unExistsMode=UnExistsMode.ERROR)
+
+    @_tt.overload
+    def recursiveTraversal(
+        self, hideDirectory: _tt.Literal[True]
+    ) -> "_tt.Generator[File]": ...
+
+    @_tt.overload
+    def recursiveTraversal(
+        self, hideDirectory: _tt.Literal[False]
+    ) -> "_tt.Generator[FileSystemItem]": ...
+
+    def recursiveTraversal(self, hideDirectory: bool):
+        """
+        Recursively traverse the directory and its subdirectories.
+
+        Args:
+            hideDirectory (bool): Whether to hide directory entries.
+
+        Yields:
+            File: Each file in the directory and its subdirectories.
+        """
+
+        if not hideDirectory:
+            yield self
+        for item in self:
+            if isDir(item):
+                yield from item.recursiveTraversal(hideDirectory)
+            else:
+                yield item
 
     def create(
         self,
