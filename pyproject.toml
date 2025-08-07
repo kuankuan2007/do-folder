@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doFolder"
-version = "2.2.2post1"
 description = "Manage files more easily"
 authors = [
     { name = "kuankuan", email = "2163826131@qq.com" },
@@ -12,6 +11,7 @@ authors = [
 readme = "README.md"
 license = "MulanPSL-2.0"
 requires-python = ">=3.8"
+dynamic = ["version"]
 
 classifiers = [
     "Natural Language :: English",
@@ -38,3 +38,6 @@ python_version = "3.12"
 exclude = [
     '^testcases\.py$',
 ]
+
+[tool.setuptools.dynamic]
+version = { attr = "doFolder.__pkginfo__.__version__" }

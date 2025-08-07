@@ -13,12 +13,15 @@ import datetime
 import sphinx
 import sphinx.application
 from sphinx._cli.util.colour import disable_colour
-import sphinx.ext
-import sphinx.ext.apidoc
+
 import sphinx.ext.apidoc._generate as apidoc_generate
 import zipfile
 
 from sphinx.ext.apidoc._shared import ApidocOptions
+
+from getInfo import getInfo
+
+import _cwd
 
 
 ApiDocOptions = TypedDict(
@@ -126,6 +129,10 @@ def get_git_info():
 
 
 def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
+
+    _cwd.initCwd()
+    _cwd.initSysPath()
+
     OUT_DIR = sphinxOptions["dist"]
     LOG_DIR = OUT_DIR / "logs"
     if LOG_DIR.exists():
@@ -177,14 +184,14 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
                 confdir=sphinxOptions["src"],
                 doctreedir=sphinxOptions["dist"] / ".doctrees",
                 buildername=sphinxOptions["build"],
-                status=sys.stdout, # type: ignore
+                status=sys.stdout,  # type: ignore
                 warning=sys.stderr,  # type: ignore
                 warningiserror=True,
             ).build(
                 force_all=sphinxOptions["force"],
                 filenames=[],
             )
-            with (Path(__file__).parent / "pyproject.toml").open("rb") as f:
+            with (_cwd.cwd / "pyproject.toml").open("rb") as f:
                 pyproject = tomllib.load(f)
             buildInfo = {
                 "project": pyproject,
@@ -230,11 +237,16 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
             sys.stderr = _stderr  # Restore original stderr
 
     # Compress the output directory into a zip file
-    zip_path = Path(f"./temp/{pyproject['project']['name']}-{pyproject['project']['version']}.doc.zip")
+    zip_path = Path(
+        f"./temp/{pyproject['project']['name']}-{getInfo().version}.doc.zip"
+    )
     zip_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for file in OUT_DIR.rglob("*"):
             zipf.write(file, file.relative_to(OUT_DIR))
+
+    _cwd.resetCwd()
+    _cwd.resetSysPath()
 
     print("Documentation build complete.")
     print(f"Logs are available in {LOG_DIR}")
@@ -242,11 +254,12 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
     print(f"Build info is available in {OUT_DIR / 'buildInfo.json'}")
     print(f"Compressed documentation is available at {zip_path}")
 
-def createChangeLogFile(src:Path):
+
+def createChangeLogFile(src: Path):
     """Create a change log file from the changelogs directory."""
     print("Creating change log file")
     changelogs = src / "changelogs"
-    files=list(i.name for i in changelogs.iterdir())
+    files = list(i.name for i in changelogs.iterdir())
     files.sort(reverse=True)
     res = """
 Change Log
@@ -261,8 +274,9 @@ Change Log
 """
     with (src / "changelog.rst").open("w", encoding="utf-8") as f:
         f.write(res)
-    
+
     print("Change log file created")
+
 
 def main():
     """Generate API documentation using Sphinx's apidoc."""

@@ -1,6 +1,7 @@
 """
 This module defines some enums used throughout the library.
 """
+
 from enum import Enum, Flag, auto
 
 
@@ -38,6 +39,7 @@ class CompareModeFlag(Flag):
     """
     Enum representing the mode for comparing items.
     """
+
     TIMETAG = auto()
     CONTENT = auto()
     SIZE = auto()
@@ -52,13 +54,24 @@ class CompareMode(Enum):
     CONTENT = CompareModeFlag.CONTENT
     SIZE = CompareModeFlag.SIZE
     TIMETAG_AND_SIZE = TIMETAG | SIZE
-    IGNORE= CompareModeFlag(0)
+    IGNORE = CompareModeFlag(0)
+
 
 class DifferenceType(Enum):
     """
     Enum representing the type of difference between two file system items.
     """
+
     FILE_DIFFERENCE = "file_difference"
     DIRECTORY_DIFFERENCE = "directory_difference"
     NOT_EXISTS = "not_exists"
     ITEM_TYPE_DIFFERENCE = "item_type_difference"
+
+class ReCalcHashMode(Enum):
+    """
+    Enum representing the mode for recalculating hashes.
+    """
+
+    TIMETAG = "TIME_TAG"
+    NEVER = "NEVER"
+    ALWAYS = "ALWAYS"

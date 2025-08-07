@@ -4,8 +4,8 @@ Provides classes and methods for managing files and directories.
 """
 
 import shutil as _shutil
-import hashlib
-import json
+import json as _json
+import io as _io
 from deprecated import deprecated as _deprecated
 
 from .path import Path, relativePathableFormat
@@ -14,6 +14,7 @@ from .enums import ErrorMode, UnExistsMode, ItemType
 from . import (
     exception as _ex,
     globalType as _tt,
+    hashing as _hash
 )  # pylint: disable=unused-import
 
 
@@ -345,6 +346,18 @@ class File(FileSystemItemBase):
         """
         return self.path.open(*args, **kwargs)  # pylint: disable=unspecified-encoding
 
+    def io(self, mode:str="r"):
+        """create a FileIO object for the file
+
+        Args:
+            mode (str, optional): The mode to open the file. Defaults to "r".
+
+        Returns:
+            FileIO: The FileIO object for the file.
+        
+        .. versionadded:: 2.2.3
+        """
+        return _io.FileIO(self.path,mode)
     @property
     def content(self) -> _tt.Union[bytes, _tt.NoReturn]:
         """
@@ -393,19 +406,20 @@ class File(FileSystemItemBase):
         _shutil.move(self.path, target)
         self.path = target
 
-    def hash(self, algorithm: str = "md5") -> str:
+    def hash(self, algorithm: str = 'sha256') -> str:
         """
         Calculate the hash of the file content using the specified algorithm.
 
         Args:
-            algorithm (str, optional): The hash algorithm to use. Defaults to "md5".
+            algorithm (str, optional): The hash algorithm to use. Defaults to "sha256".
 
         Returns:
             str: The hash value of the file content.
+
+        .. versionchanged:: 2.2.3
+            This method will call the doFolder.hashing module to calculate the hash, instead of using hashlib directly.
         """
-        hashObj = hashlib.new(algorithm)
-        hashObj.update(self.content)
-        return hashObj.hexdigest()
+        return _hash.fileHash(self, algorithm).hash
 
     def loadAsJson(self, encoding: str = "utf-8", **kw) -> _tt.Any:
         """
@@ -421,7 +435,7 @@ class File(FileSystemItemBase):
         .. versionadded:: 2.0.3
         """
         with self.open("r", encoding=encoding) as file:
-            return json.load(file, **kw)
+            return _json.load(file, **kw)
 
     def saveAsJson(  # pylint: disable=too-many-arguments
         self,
@@ -459,7 +473,7 @@ class File(FileSystemItemBase):
         .. versionadded:: 2.0.3
         """
         with self.open("w", encoding=encoding) as file:
-            json.dump(
+            _json.dump(
                 data,
                 file,
                 skipkeys=skipkeys,
