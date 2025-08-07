@@ -1,28 +1,30 @@
 # pyint: ignore
 from tempfile import gettempdir
 import random
-import pytest
 import shutil
 from pathlib import Path
-
+import hashlib
 import sys
-
+from concurrent import futures
 
 if "--no-install" in sys.argv:
     pkgDir = Path(__file__).parent.parent
 
     print(f"\nUse Directory from local: {pkgDir}")
 
-    sys.path.insert(0, (str(pkgDir)))
-    from src import doFolder
-    from src.doFolder import exception as _ex
-else:
-    print("Global module is used")
-    import doFolder
-    from doFolder import exception as _ex
+    sys.path.insert(0, (str(pkgDir / "src")))
+
+import doFolder
+import doFolder.hashing
 
 
 root: Path
+
+
+def calcHash(content: bytes, algorithm: str = "sha256"):
+    obj = hashlib.new(algorithm)
+    obj.update(content)
+    return obj.hexdigest()
 
 
 def randomString(l=10):
@@ -307,8 +309,8 @@ class TestFileSystem:
             assert (
                 i.path in res1
             ), f"Expected item {i} to be in the result, but it is not."
-        
-        res2= tuple(i.path for i in d.recursiveTraversal(hideDirectory=False))
+
+        res2 = tuple(i.path for i in d.recursiveTraversal(hideDirectory=False))
         exceptRes2 = [
             d["test1"],
             d["test2"],
@@ -324,7 +326,7 @@ class TestFileSystem:
             t6,
             t9,
             t12,
-            d
+            d,
         ]
         assert len(res2) == len(
             exceptRes2
@@ -527,3 +529,77 @@ class TestCompareSystem:
             .diffType
             == doFolder.compare.DifferenceType.NOT_EXISTS
         ), "Expected folders 'test1' and 'test1_copy' to be not equal, but they are."
+
+    def test_hash(self):
+        path = root / "test_hash"
+
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        f1 = d.createFile("test1")
+        content1 = randomFileContent(1024).encode("utf-8")
+        f1.content = content1
+        assert f1.hash() == calcHash(content1), "wrong answer for sha256"
+
+        f2 = d.createFile("test2")
+        content2 = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+        f2.content = content2
+
+        assert f2.hash() == calcHash(content2), "wrong answer for sha256"
+
+        assert f2.hash("md5") == calcHash(content2, "md5"), "wrong answer for md5"
+
+    def test_hash_calculator(self):
+        path = root / "test_hash_calculator"
+
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        f1 = d.createFile("test1")
+        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+        obj1 = doFolder.hashing.FileHashCalculator()
+
+        assert obj1.findCache(f1) is None
+
+        res1 = obj1.get(f1)
+
+        assert obj1.findCache(f1) == res1
+
+        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+
+        res2 = obj1.get(f1)
+        assert res2 != res1
+
+        obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.NEVER
+
+        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+
+        assert obj1.get(f1) == res2
+
+        obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.ALWAYS
+
+        res3 = obj1.get(f1)
+        res4 = obj1.get(f1)
+
+        assert res3.calcTime != res4.calcTime and res3.hash == res4.hash
+
+    def test_threaded_hash_calculator(self):
+
+        path = root / "test_threaded_hash_calculator"
+
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        files: list[doFolder.File] = []
+
+        for i in range(20):
+            files.append(d.createFile(f"test{i}"))
+            files[-1].content = randomFileContent(
+                1024 * 1024 * random.randint(1, 8)
+            ).encode("utf-8")
+
+        obj1 = doFolder.hashing.ThreadedFileHashCalculator()
+
+        res = [obj1.threadedGet(i) for i in files]
+
+        futures.wait(res, timeout=60 * 10)
+
+        for i in res:
+            assert type(i.result()) == doFolder.hashing.FileHashResult

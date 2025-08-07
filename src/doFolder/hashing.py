@@ -12,7 +12,7 @@ from . import globalType as _tt
 from .enums import ReCalcHashMode
 
 if _tt.TYPE_CHECKING:
-    from . import fileSystem as _fs # pylint: disable=cyclic-import
+    from . import fileSystem as _fs  # pylint: disable=cyclic-import
 
 
 DEFAULT_HASH_ALGORITHM = "sha256"
@@ -178,12 +178,14 @@ class FileHashCalculator:
 
     def calc(self, file: "_fs.File") -> FileHashResult:
         """Calculate the hash of the given file."""
+
         res = fileHash(
             file,
             algorithm=self.algorithm,
             chunkSize=self.chunkSize,
             fileIOMinSize=self.fileIOMinSize,
         )
+
         if self.useCache:
             self.cache[file.path] = res
         return res
