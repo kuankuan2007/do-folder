@@ -149,7 +149,7 @@ class FileHashCalculator:
             return cacheResult
         return self.calc(file)
 
-    def findCache(self, file: "_fs.File") -> FileHashResult | None:
+    def findCache(self, file: "_fs.File") -> _tt.Union[FileHashResult, None]:
         """Find a cached hash entry for the given file."""
         if not self.useCache:
             return None
