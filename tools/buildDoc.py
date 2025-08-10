@@ -33,6 +33,14 @@ ApiDocOptions = TypedDict(
         "force": bool,
     },
 )
+
+BuildOptions = TypedDict(
+    "BuildOptions",
+    {
+        "withCompress": bool,
+    },
+)
+
 SphinxOptions = TypedDict(
     "SphinxOptions",
     {
@@ -128,7 +136,7 @@ def get_git_info():
         }
 
 
-def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
+def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions, buildOptions):
 
     _cwd.initCwd()
     _cwd.initSysPath()
@@ -153,7 +161,12 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
         sys.stderr = CopyStream(stderr_file, _stderr)  # type: ignore
 
         try:
-
+            shutil.rmtree(OUT_DIR, ignore_errors=True)  # Clean output directory
+            shutil.rmtree(LOG_DIR, ignore_errors=True)  # Clean log directory
+            shutil.rmtree(
+                apidocOptions["dist"], ignore_errors=True
+            )  # Clean apidoc dist directory
+            apidocOptions["dist"].mkdir(parents=True, exist_ok=True)
             apidocOpt = ApidocOptions(
                 module_path=apidocOptions["src"],
                 dest_dir=apidocOptions["dist"],
@@ -236,23 +249,24 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
             sys.stdout = _stdout  # Restore original stdout
             sys.stderr = _stderr  # Restore original stderr
 
-    # Compress the output directory into a zip file
-    zip_path = Path(
-        f"./temp/{pyproject['project']['name']}-{getInfo().version}.doc.zip"
-    )
-    zip_path.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for file in OUT_DIR.rglob("*"):
-            zipf.write(file, file.relative_to(OUT_DIR))
-
-    _cwd.resetCwd()
-    _cwd.resetSysPath()
-
     print("Documentation build complete.")
     print(f"Logs are available in {LOG_DIR}")
     print(f"Documentation is available in {OUT_DIR}")
     print(f"Build info is available in {OUT_DIR / 'buildInfo.json'}")
-    print(f"Compressed documentation is available at {zip_path}")
+
+    if buildOptions["withCompress"]:
+        # Compress the output directory into a zip file
+        zip_path = Path(
+            f"./temp/{pyproject['project']['name']}-{getInfo().version}.doc.zip"
+        )
+        zip_path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file in OUT_DIR.rglob("*"):
+                zipf.write(file, file.relative_to(OUT_DIR))
+        print(f"Compressed documentation is available at {zip_path}")
+
+    _cwd.resetCwd()
+    _cwd.resetSysPath()
 
 
 def createChangeLogFile(src: Path):
@@ -326,6 +340,11 @@ def main():
         default="doc/source",
         help="Path to the directory for the build (default: %(default)s)",
     )
+    argp.add_argument(
+        "--with-compress",
+        action="store_true",
+        help="Compress the output directory into a zip file",
+    )
 
     args = argp.parse_args()
     apiDist = Path(args.apidoc_dist).absolute()
@@ -347,6 +366,9 @@ def main():
             "noColor": not args.color,
             "force": not args.no_force,
         },
+        {
+            "withCompress": args.with_compress,
+        }
     )
 
 

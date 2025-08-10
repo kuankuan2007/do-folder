@@ -1,7 +1,4 @@
 """
-File and Content Hashing Module
-===============================
-
 This module provides comprehensive functionality for calculating cryptographic hashes
 of files and byte content with support for caching, chunked reading, and multithreaded
 processing.

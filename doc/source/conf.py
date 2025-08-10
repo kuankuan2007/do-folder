@@ -53,7 +53,6 @@ autodoc_default_options = {
 
 source_suffix = {
     ".rst": "restructuredtext",
-    ".txt": "markdown",
     ".md": "markdown",
 }
 
