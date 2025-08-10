@@ -392,7 +392,7 @@ class MemoryFileHashManager(FileHashCacheManagerBase):
         The cache grows without bounds, so for applications processing many files,
         consider using LfuMemoryFileHashManager instead to limit memory usage.
     """
-    _cache: dict[str, FileHashResult]
+    _cache: _tt.Dict[str, FileHashResult]
 
     def __init__(self):
         self._cache = {}
