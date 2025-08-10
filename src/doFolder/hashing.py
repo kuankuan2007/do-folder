@@ -451,7 +451,7 @@ class LfuMemoryFileHashManager(FileHashCacheManagerBase):
         Despite the class name suggesting LFU (Least Frequently Used), this
         implementation actually uses LRU (Least Recently Used) eviction policy.
     """
-    _cache: _OrderedDict[str, FileHashResult]
+    _cache: "_OrderedDict[str, FileHashResult]"
     maxSize: int
 
     def __init__(self, maxSize: int):
