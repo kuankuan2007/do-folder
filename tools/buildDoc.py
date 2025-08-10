@@ -191,7 +191,7 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
                 force_all=sphinxOptions["force"],
                 filenames=[],
             )
-            with (_cwd.cwd/"pyproject.toml").open("rb") as f:
+            with (_cwd.cwd / "pyproject.toml").open("rb") as f:
                 pyproject = tomllib.load(f)
             buildInfo = {
                 "project": pyproject,
@@ -237,7 +237,9 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions):
             sys.stderr = _stderr  # Restore original stderr
 
     # Compress the output directory into a zip file
-    zip_path = Path(f"./temp/{pyproject['project']['name']}-{getInfo().version}.doc.zip")
+    zip_path = Path(
+        f"./temp/{pyproject['project']['name']}-{getInfo().version}.doc.zip"
+    )
     zip_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for file in OUT_DIR.rglob("*"):
