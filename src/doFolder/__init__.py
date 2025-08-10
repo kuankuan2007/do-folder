@@ -91,20 +91,14 @@ from .__pkginfo__ import __version__  # Package version information
 
 
 __all__ = [
-    # Core classes for file system operations
-    "File",  # File object for managing individual files
-    "Directory",  # Directory object for managing directories
-    "Folder",  # Alias for Directory (backward compatibility)
-    # Enums and type definitions
-    "ItemType",  # Enumeration for file system item types
-    "UnExistsMode",  # Behavior mode when paths don't exist
-    # Path utilities
-    "Path",  # Enhanced path handling class
-    # Utility functions
-    "createItem",  # Factory function to create File/Directory objects
-    "isDir",  # Type guard function to check if item is directory
-    # Modules
-    "compare",  # File and directory comparison utilities
-    # Package metadata
-    "__version__",  # Package version string
+    "File",
+    "Directory",
+    "Folder",
+    "ItemType",
+    "UnExistsMode",
+    "Path",
+    "createItem",
+    "isDir",
+    "compare",
+    "__version__",
 ]
