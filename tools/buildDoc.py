@@ -145,7 +145,7 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions, buildOptio
     LOG_DIR = OUT_DIR / "logs"
     if LOG_DIR.exists():
         shutil.rmtree(LOG_DIR)  # Remove existing log directory
-    LOG_DIR.mkdir(exist_ok=True, parents=True)  # Create log directory
+    LOG_DIR.mkdir(exist_ok=True, parents=True, mode=777)  # Create log directory
 
     buildLog = LOG_DIR / "build_error.log"
     apidocLog = LOG_DIR / "apidoc.log"
@@ -166,7 +166,7 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions, buildOptio
             shutil.rmtree(
                 apidocOptions["dist"], ignore_errors=True
             )  # Clean apidoc dist directory
-            apidocOptions["dist"].mkdir(parents=True, exist_ok=True)
+            apidocOptions["dist"].mkdir(parents=True, exist_ok=True, mode=777)
             apidocOpt = ApidocOptions(
                 module_path=apidocOptions["src"],
                 dest_dir=apidocOptions["dist"],
@@ -259,7 +259,7 @@ def build(apidocOptions: ApiDocOptions, sphinxOptions: SphinxOptions, buildOptio
         zip_path = Path(
             f"./temp/{pyproject['project']['name']}-{getInfo().version}.doc.zip"
         )
-        zip_path.parent.mkdir(parents=True, exist_ok=True)
+        zip_path.parent.mkdir(parents=True, exist_ok=True, mode=777)
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file in OUT_DIR.rglob("*"):
                 zipf.write(file, file.relative_to(OUT_DIR))
@@ -350,7 +350,7 @@ def main():
     apiDist = Path(args.apidoc_dist).absolute()
     if not apiDist.exists():
         print("Creating destination directory")
-        apiDist.mkdir(parents=True)
+        apiDist.mkdir(parents=True, mode=777)
     createChangeLogFile(Path(args.src).absolute())
     build(
         {
@@ -368,7 +368,7 @@ def main():
         },
         {
             "withCompress": args.with_compress,
-        }
+        },
     )
 
 
