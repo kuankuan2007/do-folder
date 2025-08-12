@@ -1,0 +1,12 @@
+Version 2.2.4
+=============
+
+- New Hash Api
+
+  - Newly add `doFolder.hashing` module to provide a unified interface for hashing operations.
+  - The `File.hash` method now using doFolder.hashing module instead of hashlib directly.
+  - Support caching of calculated Hash values and guide to the expiration conditions
+  - Support multi-threaded computation of hash
+  - During the calculation process, support for automatic streaming reading of files is provided. 
+
+For more details, please refer to the `changelog <https://github.com/kuankuan2007/do-folder/compare/v2.2.0...v2.2.4>`__.

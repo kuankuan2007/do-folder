@@ -272,29 +272,12 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
     The interface is designed to be simple and focused, requiring only two
     core operations: retrieving cached results and storing new results.
 
-    Example Implementation:
-        class DatabaseCacheManager(FileHashCacheManagerBase):
-            def __init__(self, db_connection):
-                super().__init__()
-                self.db = db_connection
-
-            def get(self, file):
-                # Query database for cached hash result
-                result = self.db.query("SELECT * FROM hash_cache WHERE path = ?",
-                                     str(file.path))
-                if result and result.mtime >= file.state.st_mtime:
-                    return FileHashResult(**result)
-                return None
-
-            def set(self, file, result):
-                # Store hash result in database
-                self.db.execute("INSERT OR REPLACE INTO hash_cache VALUES (?, ?, ...)",
-                              str(file.path), result.hash, ...)
-
     Note:
         This is an abstract base class and cannot be instantiated directly.
         Subclasses must implement the get() and set() methods to provide
         actual caching functionality.
+    
+    .. versionadded:: 2.2.4
     """
 
     def __init__(self) -> None:
@@ -380,17 +363,19 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
 class MemoryFileHashManager(FileHashCacheManagerBase):
     """
     Simple in-memory cache manager for file hash results.
-    
+
     This implementation provides basic caching functionality using a Python dictionary
     to store hash results in memory. The cache persists for the lifetime of the
     MemoryFileHashManager instance but is not persistent across program runs.
-    
+
     This is the default cache manager when caching is enabled and provides good
     performance for most use cases where memory usage is not a primary concern.
-    
+
     Note:
         The cache grows without bounds, so for applications processing many files,
         consider using LfuMemoryFileHashManager instead to limit memory usage.
+
+    .. versionadded:: 2.2.4
     """
     _cache: _tt.Dict[str, FileHashResult]
 
@@ -407,18 +392,20 @@ class MemoryFileHashManager(FileHashCacheManagerBase):
 class NullFileHashManager(FileHashCacheManagerBase):
     """
     No-operation cache manager that disables caching entirely.
-    
+
     This implementation provides a null object pattern for situations where
     caching is not desired. All cache operations are no-ops:
     - get() always returns None (cache miss)
     - set() discards the provided result
-    
+
     Use this manager when you want to disable caching but still use the
     FileHashCalculator interface, or for testing scenarios where cache
     behavior should be eliminated.
-    
+
     This manager has zero memory overhead and provides consistent performance
     characteristics since no cache lookups or storage operations are performed.
+
+    .. versionadded:: 2.2.4
     """
     def get(self, file: "_fs.File"):
         return None
@@ -430,26 +417,28 @@ class NullFileHashManager(FileHashCacheManagerBase):
 class LfuMemoryFileHashManager(FileHashCacheManagerBase):
     """
     LRU (Least Recently Used) memory cache manager with size limits.
-    
+
     This implementation provides memory-bounded caching using an OrderedDict to track
     access patterns. When the cache exceeds the specified maximum size, the least
     recently used entries are automatically evicted to maintain the size limit.
-    
+
     The cache uses LRU eviction policy:
     - Recently accessed items are moved to the end of the cache
     - When size limit is exceeded, items from the beginning are removed
     - Both get() and set() operations update the access order
-    
+
     This manager is ideal for long-running applications that process many files
     where memory usage needs to be controlled while maintaining good cache hit rates.
-    
+
     Args:
         maxSize (int): Maximum number of hash results to keep in cache.
             When exceeded, least recently used entries are evicted.
-    
+
     Note:
         Despite the class name suggesting LFU (Least Frequently Used), this
         implementation actually uses LRU (Least Recently Used) eviction policy.
+
+    .. versionadded:: 2.2.4
     """
     _cache: "_OrderedDict[str, FileHashResult]"
     maxSize: int

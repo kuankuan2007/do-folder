@@ -38,7 +38,7 @@
       "name": "Sphinx Build",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/buildDoc.py",
+      "program": "${workspaceFolder}/tools/buildDoc.py",
       "console": "integratedTerminal",
       "justMyCode": false
     },
