@@ -1,5 +1,6 @@
 Version 2.2.0
 =============
+
 - Newly added Compare API
 
   - Use the `compare` module to compare two directories or files

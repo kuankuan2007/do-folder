@@ -116,7 +116,7 @@ class FileSystemItemBase(_tt.abc.ABC):
     path management, existence checking, and basic operations.
 
     Attributes:
-        path (Path): The path to the file or directory. :no-index:
+        path (Path): The path to the file or directory.
 
     .. versionadded:: 2.1.0
     """
