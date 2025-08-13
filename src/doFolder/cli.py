@@ -20,6 +20,7 @@ from . import (
     compare as _compare,
     exception as _ex,
     sort as _sort,
+    env as _env,
     __version__,
     __pkgname__,
 )
@@ -54,9 +55,9 @@ def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
         "-C",
         "--compare-mode",
         type=str,
-        choices=["SIZE", "CONT", "TIMETAG", "TIMETAG_AND_SIZE", "IGNORE"],
+        choices=["SIZE", "CONTENT", "TIMETAG", "TIMETAG_AND_SIZE", "IGNORE"],
         default="TIMETAG_AND_SIZE",
-        help="How to compare two files: 'SIZE' for size, 'CONT' for content, 'TIMETAG' for timestamp, 'TIMETAG_AND_SIZE' for both, 'IGNORE' to ignore differences'",
+        help="How to compare two files: 'SIZE' for size, 'CONTENT' for content, 'TIMETAG' for timestamp, 'TIMETAG_AND_SIZE' for both, 'IGNORE' to ignore differences'",
     )
     parser.add_argument(
         "-S",
@@ -114,13 +115,19 @@ def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
         action="version",
         version=f"{__pkgname__} {__version__}",
     )
+    parser.add_argument(
+        "-vv",
+        "--full-version",
+        action="version",
+        version=f"{__pkgname__} {__version__} From Python {_env.PYTHON_VERSION_STR}({_env.PYTHON_EXECUTABLE})",
+    )
     args = parser.parse_args(arguments)
     return _compareCli(
         pathA=_fs.Path(args.path_A),
         pathB=_fs.Path(args.path_B),
         compareMode={
             "SIZE": _compare.CompareMode.SIZE,
-            "CONT": _compare.CompareMode.CONTENT,
+            "CONTENT": _compare.CompareMode.CONTENT,
             "TIMETAG": _compare.CompareMode.TIMETAG,
             "TIMETAG_AND_SIZE": _compare.CompareMode.TIMETAG_AND_SIZE,
             "IGNORE": _compare.CompareMode.IGNORE,
