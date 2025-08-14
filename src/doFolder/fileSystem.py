@@ -13,6 +13,7 @@ Main functions:
 - createItem(): Factory function to create File or Directory objects
 - isFile()/isDir(): Type checking functions
 """
+# pylint: disable=too-many-lines
 
 import shutil as _shutil
 import json as _json
