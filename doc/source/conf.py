@@ -55,7 +55,8 @@ source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
 }
-
+html_logo = "_static/logo.svg"
+html_favicon = "_static/logo.svg"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
