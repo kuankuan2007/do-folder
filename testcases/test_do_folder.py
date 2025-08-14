@@ -159,7 +159,7 @@ class TestFileSystem:
                 assert i.name == "test1" and i.content == inner.encode(
                     "utf8"
                 ), f"File creation failed: expected file 'test1' with specific content, but found '{i.name}' with different content. Check createFile() method and content assignment."
-        
+
         assert len(found_items) == 2, f"Expected 2 items (1 file, 1 directory) but found {len(found_items)}. Check createFile() and createDir() methods."
 
     def test_folder_operation(self):
@@ -301,7 +301,7 @@ class TestFileSystem:
             f"Recursive traversal count mismatch: expected {len(expected_files)} files, "
             f"but got {len(res1)}. Check recursiveTraversal() implementation."
         )
-        
+
         for expected_item in expected_files:
             assert expected_item.path in res1, (
                 f"Recursive traversal missing item: {expected_item.path} not found in traversal results. "
@@ -315,17 +315,145 @@ class TestFileSystem:
             t6["test7"], t6["test8"], t9["test10"], t9["test11"], 
             t12["test13"], t12["test14"], t3, t6, t9, t12, d
         ]
-        
+
         assert len(res2) == len(expected_all_items), (
             f"Recursive traversal with directories count mismatch: expected {len(expected_all_items)} items, "
             f"but got {len(res2)}. Check recursiveTraversal(hideDirectory=False) implementation."
         )
-        
+
         for expected_item in expected_all_items:
             assert expected_item.path in res2, (
                 f"Recursive traversal with directories missing item: {expected_item.path} not found in results. "
                 f"Check if recursiveTraversal(hideDirectory=False) properly includes all files and directories."
             )
+
+    def test_hash(self):
+        """Test basic file hashing functionality with different algorithms"""
+        path = root / "test_hash"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        # Test small file SHA256 hash
+        f1 = d.createFile("test1")
+        content1 = randomFileContent(1024).encode("utf-8")
+        f1.content = content1
+        calculated_hash = f1.hash()
+        expected_hash = calcHash(content1)
+        assert calculated_hash == expected_hash, (
+            f"SHA256 hash mismatch for small file: expected {expected_hash}, got {calculated_hash}. "
+            f"Check hash() method implementation or content reading."
+        )
+
+        # Test large file SHA256 hash
+        f2 = d.createFile("test2")
+        content2 = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+        f2.content = content2
+        calculated_hash2 = f2.hash()
+        expected_hash2 = calcHash(content2)
+        assert calculated_hash2 == expected_hash2, (
+            f"SHA256 hash mismatch for large file: expected {expected_hash2}, got {calculated_hash2}. "
+            f"Check hash() method with large files or content reading."
+        )
+
+        # Test MD5 hash algorithm
+        calculated_md5 = f2.hash("md5")
+        expected_md5 = calcHash(content2, "md5")
+        assert calculated_md5 == expected_md5, (
+            f"MD5 hash mismatch: expected {expected_md5}, got {calculated_md5}. "
+            f"Check hash() method with different algorithm parameter."
+        )
+
+    def test_hash_calculator(self):
+        """Test FileHashCalculator caching and recalculation modes"""
+        path = root / "test_hash_calculator"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        f1 = d.createFile("test1")
+        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+        obj1 = doFolder.hashing.FileHashCalculator()
+
+        # Test initial cache state
+        initial_cache = obj1.findCache(f1)
+        assert initial_cache is None, (
+            f"Initial cache check failed: findCache() should return None for new file but got {initial_cache}. "
+            f"Check cache initialization in FileHashCalculator."
+        )
+
+        # Test first hash calculation and caching
+        res1 = obj1.get(f1)
+        cached_result = obj1.findCache(f1)
+        assert cached_result == res1, (
+            f"Cache storage failed: findCache() should return the same result as get() but values differ. "
+            f"Check caching mechanism in FileHashCalculator."
+        )
+
+        # Modify content and test cache invalidation
+        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+        res2 = obj1.get(f1)
+        assert res2 != res1, (
+            f"Cache invalidation failed: hash result should change after content modification but got same result. "
+            f"Check content change detection and cache invalidation logic."
+        )
+
+        # Test NEVER recalc mode
+        obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.NEVER
+        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
+        never_result = obj1.get(f1)
+        assert never_result == res2, (
+            f"NEVER recalc mode failed: should return cached result even after content change but got different result. "
+            f"Check ReCalcHashMode.NEVER implementation."
+        )
+
+        # Test ALWAYS recalc mode
+        obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.ALWAYS
+        res3 = obj1.get(f1)
+        time.sleep(1)  # Ensure different timestamps
+        res4 = obj1.get(f1)
+
+        assert res3.calcTime != res4.calcTime and res3.hash == res4.hash, (
+            f"ALWAYS recalc mode failed: should recalculate with different timestamps but same hash. "
+            f"Got calcTime3={res3.calcTime}, calcTime4={res4.calcTime}, hash3={res3.hash}, hash4={res4.hash}. "
+            f"Check ReCalcHashMode.ALWAYS implementation."
+        )
+
+    def test_threaded_hash_calculator(self):
+        """Test ThreadedFileHashCalculator concurrent hash computation"""
+        path = root / "test_threaded_hash_calculator"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        # Create multiple test files with random content
+        files: list[doFolder.File] = []
+        for i in range(20):
+            files.append(d.createFile(f"test{i}"))
+            files[-1].content = randomFileContent(
+                1024 * 1024 * random.randint(1, 8)
+            ).encode("utf-8")
+
+        # Test concurrent hash calculation
+        with doFolder.hashing.ThreadedFileHashCalculator() as obj1:
+            futures_list = [obj1.threadedGet(f) for f in files]
+
+            # Wait for all calculations to complete
+            completed_futures = futures.wait(futures_list, timeout=60 * 10)
+
+            # Check that all futures completed successfully
+            assert len(completed_futures.done) == len(futures_list), (
+                f"Threaded hash calculation timeout: only {len(completed_futures.done)} out of {len(futures_list)} "
+                f"hash calculations completed within timeout. Check ThreadedFileHashCalculator performance or increase timeout."
+            )
+
+            # Verify all results are valid FileHashResult objects
+            for i, future in enumerate(futures_list):
+                try:
+                    result = future.result()
+                    assert isinstance(result, doFolder.hashing.FileHashResult), (
+                        f"Invalid result type for file {files[i].name}: expected FileHashResult, got {type(result)}. "
+                        f"Check ThreadedFileHashCalculator result type."
+                    )
+                except Exception as e:
+                    assert False, (
+                        f"Hash calculation failed for file {files[i].name}: {str(e)}. "
+                        f"Check ThreadedFileHashCalculator error handling."
+                    )
 
 
 class TestCompareSystem:
@@ -529,131 +657,3 @@ class TestCompareSystem:
             delete_diff is not None and
             delete_diff.toFlat()[-1].diffType == doFolder.compare.DifferenceType.NOT_EXISTS
         ), f"Deletion difference detection failed: missing file should show NOT_EXISTS difference type but didn't. Check difference detection for missing files."
-
-    def test_hash(self):
-        """Test basic file hashing functionality with different algorithms"""
-        path = root / "test_hash"
-        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
-
-        # Test small file SHA256 hash
-        f1 = d.createFile("test1")
-        content1 = randomFileContent(1024).encode("utf-8")
-        f1.content = content1
-        calculated_hash = f1.hash()
-        expected_hash = calcHash(content1)
-        assert calculated_hash == expected_hash, (
-            f"SHA256 hash mismatch for small file: expected {expected_hash}, got {calculated_hash}. "
-            f"Check hash() method implementation or content reading."
-        )
-
-        # Test large file SHA256 hash
-        f2 = d.createFile("test2")
-        content2 = randomFileContent(1024 * 1024 * 5).encode("utf-8")
-        f2.content = content2
-        calculated_hash2 = f2.hash()
-        expected_hash2 = calcHash(content2)
-        assert calculated_hash2 == expected_hash2, (
-            f"SHA256 hash mismatch for large file: expected {expected_hash2}, got {calculated_hash2}. "
-            f"Check hash() method with large files or content reading."
-        )
-
-        # Test MD5 hash algorithm
-        calculated_md5 = f2.hash("md5")
-        expected_md5 = calcHash(content2, "md5")
-        assert calculated_md5 == expected_md5, (
-            f"MD5 hash mismatch: expected {expected_md5}, got {calculated_md5}. "
-            f"Check hash() method with different algorithm parameter."
-        )
-
-    def test_hash_calculator(self):
-        """Test FileHashCalculator caching and recalculation modes"""
-        path = root / "test_hash_calculator"
-        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
-
-        f1 = d.createFile("test1")
-        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
-        obj1 = doFolder.hashing.FileHashCalculator()
-
-        # Test initial cache state
-        initial_cache = obj1.findCache(f1)
-        assert initial_cache is None, (
-            f"Initial cache check failed: findCache() should return None for new file but got {initial_cache}. "
-            f"Check cache initialization in FileHashCalculator."
-        )
-
-        # Test first hash calculation and caching
-        res1 = obj1.get(f1)
-        cached_result = obj1.findCache(f1)
-        assert cached_result == res1, (
-            f"Cache storage failed: findCache() should return the same result as get() but values differ. "
-            f"Check caching mechanism in FileHashCalculator."
-        )
-
-        # Modify content and test cache invalidation
-        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
-        res2 = obj1.get(f1)
-        assert res2 != res1, (
-            f"Cache invalidation failed: hash result should change after content modification but got same result. "
-            f"Check content change detection and cache invalidation logic."
-        )
-
-        # Test NEVER recalc mode
-        obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.NEVER
-        f1.content = randomFileContent(1024 * 1024 * 5).encode("utf-8")
-        never_result = obj1.get(f1)
-        assert never_result == res2, (
-            f"NEVER recalc mode failed: should return cached result even after content change but got different result. "
-            f"Check ReCalcHashMode.NEVER implementation."
-        )
-
-        # Test ALWAYS recalc mode
-        obj1.reCalcHashMode = doFolder.hashing.ReCalcHashMode.ALWAYS
-        res3 = obj1.get(f1)
-        time.sleep(1)  # Ensure different timestamps
-        res4 = obj1.get(f1)
-        
-        assert res3.calcTime != res4.calcTime and res3.hash == res4.hash, (
-            f"ALWAYS recalc mode failed: should recalculate with different timestamps but same hash. "
-            f"Got calcTime3={res3.calcTime}, calcTime4={res4.calcTime}, hash3={res3.hash}, hash4={res4.hash}. "
-            f"Check ReCalcHashMode.ALWAYS implementation."
-        )
-
-    def test_threaded_hash_calculator(self):
-        """Test ThreadedFileHashCalculator concurrent hash computation"""
-        path = root / "test_threaded_hash_calculator"
-        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
-
-        # Create multiple test files with random content
-        files: list[doFolder.File] = []
-        for i in range(20):
-            files.append(d.createFile(f"test{i}"))
-            files[-1].content = randomFileContent(
-                1024 * 1024 * random.randint(1, 8)
-            ).encode("utf-8")
-
-        # Test concurrent hash calculation
-        with doFolder.hashing.ThreadedFileHashCalculator() as obj1:
-            futures_list = [obj1.threadedGet(f) for f in files]
-
-            # Wait for all calculations to complete
-            completed_futures = futures.wait(futures_list, timeout=60 * 10)
-            
-            # Check that all futures completed successfully
-            assert len(completed_futures.done) == len(futures_list), (
-                f"Threaded hash calculation timeout: only {len(completed_futures.done)} out of {len(futures_list)} "
-                f"hash calculations completed within timeout. Check ThreadedFileHashCalculator performance or increase timeout."
-            )
-
-            # Verify all results are valid FileHashResult objects
-            for i, future in enumerate(futures_list):
-                try:
-                    result = future.result()
-                    assert isinstance(result, doFolder.hashing.FileHashResult), (
-                        f"Invalid result type for file {files[i].name}: expected FileHashResult, got {type(result)}. "
-                        f"Check ThreadedFileHashCalculator result type."
-                    )
-                except Exception as e:
-                    assert False, (
-                        f"Hash calculation failed for file {files[i].name}: {str(e)}. "
-                        f"Check ThreadedFileHashCalculator error handling."
-                    )
