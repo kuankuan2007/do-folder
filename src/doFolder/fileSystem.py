@@ -948,7 +948,7 @@ class Directory(FileSystemItemBase):
         """
         target = self.path.__truediv__(other)
         return createItem(
-            target, unExistsMode=UnExistsMode.WARN, exceptType=ItemType.DIR
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
 
     def __floordiv__(self, other: _tt.Pathable) -> "Directory":
@@ -994,7 +994,7 @@ class Directory(FileSystemItemBase):
         """
         target = self.path.__rtruediv__(other)
         return createItem(
-            target, unExistsMode=UnExistsMode.WARN, exceptType=ItemType.DIR
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
 
     def __rfloordiv__(self, other: _tt.Pathable) -> "Directory":
