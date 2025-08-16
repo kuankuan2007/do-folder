@@ -13,6 +13,7 @@ Main functions:
 - createItem(): Factory function to create File or Directory objects
 - isFile()/isDir(): Type checking functions
 """
+
 # pylint: disable=too-many-lines
 
 import shutil as _shutil
@@ -540,6 +541,10 @@ class Directory(FileSystemItemBase):
 
         Returns:
             FileSystemItem: FileSystemItem for the child.
+
+        Note:
+            We recommend using the "/"(truediv) or "//"(floordiv) operator for path traversal after version 2.2.5
+            But you can still use the old methods if you prefer.
         """
         return self._get(name, unExistsMode=UnExistsMode.ERROR)
 
@@ -926,10 +931,8 @@ class Directory(FileSystemItemBase):
         )
 
     def __truediv__(self, other: _tt.Pathable) -> "FileSystemItem":
-        """Path division operator (/) to navigate to a child path.
-
-        Creates a FileSystemItem for the path resulting from joining this directory
-        with the given path component. Warns if the resulting path doesn't exist.
+        """Division operator (/) to navigate to a child directory or file.
+        Use it to append a path component to this directory's path.
 
         Args:
             other (Pathable): Path component to append to this directory's path.
@@ -949,10 +952,9 @@ class Directory(FileSystemItemBase):
         )
 
     def __floordiv__(self, other: _tt.Pathable) -> "Directory":
-        """Floor division operator (//) to create a child directory.
-
-        Creates a Directory for the path resulting from joining this directory
-        with the given path component. Automatically creates the directory if it doesn't exist.
+        """Floor division operator (//) to navigate to a child directory.
+        Use it only when you have a strong desire for the result to be a directory.
+        We'll create it if it doesn't exist, and raise an error if it's a file.
 
         Args:
             other (Pathable): Path component to append to this directory's path.
@@ -980,19 +982,13 @@ class Directory(FileSystemItemBase):
     def __rtruediv__(self, other: _tt.Pathable) -> "FileSystemItem":
         """Reverse path division operator for right-hand side path operations.
 
-        Handles cases where this directory is used as the right operand in path division.
-        Creates a FileSystemItem for the path resulting from joining the given path
-        with this directory's path.
+        See `__truediv__` for more details.
 
         Args:
             other (Pathable): Left-hand side path component.
 
         Returns:
             FileSystemItem: FileSystemItem for the resulting path.
-
-        Example:
-            >>> dir = Directory("documents")
-            >>> path = Path("/home/user") / dir  # Uses __rtruediv__
 
         .. versionadded:: 2.2.5
         """
@@ -1004,9 +1000,7 @@ class Directory(FileSystemItemBase):
     def __rfloordiv__(self, other: _tt.Pathable) -> "Directory":
         """Reverse floor division operator for right-hand side directory creation.
 
-        Handles cases where this directory is used as the right operand in floor division.
-        Creates a Directory for the path resulting from joining the given path
-        with this directory's path, automatically creating it if it doesn't exist.
+        See `__floordiv__` for more details.
 
         Args:
             other (Pathable): Left-hand side path component.
@@ -1016,13 +1010,6 @@ class Directory(FileSystemItemBase):
 
         Raises:
             PathTypeError: If the resulting path exists but is a file, not a directory.
-
-        Example:
-            >>> dir = Directory("projects")
-            >>> parent_path = Path("/home/user") // dir  # Uses __rfloordiv__
-
-        Note:
-            This method uses __rtruediv__ internally as Path may not support __rfloordiv__.
 
         .. versionadded:: 2.2.5
         """
