@@ -97,7 +97,9 @@ class TestFileSystem:
         path.write_text(inner, encoding="utf8")
 
         t1 = doFolder.createItem(path)
-        assert t1.exists(), f"File setup failed: source file {path} should exist but doesn't. Check test setup."
+        assert (
+            t1.exists()
+        ), f"File setup failed: source file {path} should exist but doesn't. Check test setup."
 
         copyPath = root / "test_file_operation_copy"
         movePath = root / "test_file_operation_move"
@@ -136,8 +138,12 @@ class TestFileSystem:
         inner = randomFileContent()
 
         d = doFolder.Directory(path)
-        assert d.exists(), f"Directory creation failed: directory {path} should exist but doesn't. Check Directory() constructor."
-        assert not d.isFile(), f"Directory type check failed: {path} should be a directory but isFile() returned True. Check isFile() method."
+        assert (
+            d.exists()
+        ), f"Directory creation failed: directory {path} should exist but doesn't. Check Directory() constructor."
+        assert (
+            not d.isFile()
+        ), f"Directory type check failed: {path} should be a directory but isFile() returned True. Check isFile() method."
 
         c1 = tuple(d.__iter__())
         assert (
@@ -160,7 +166,9 @@ class TestFileSystem:
                     "utf8"
                 ), f"File creation failed: expected file 'test1' with specific content, but found '{i.name}' with different content. Check createFile() method and content assignment."
 
-        assert len(found_items) == 2, f"Expected 2 items (1 file, 1 directory) but found {len(found_items)}. Check createFile() and createDir() methods."
+        assert (
+            len(found_items) == 2
+        ), f"Expected 2 items (1 file, 1 directory) but found {len(found_items)}. Check createFile() and createDir() methods."
 
     def test_folder_operation(self):
         """Test directory copy, move and delete operations"""
@@ -171,7 +179,9 @@ class TestFileSystem:
         d = doFolder.Directory(path)
         d.createFile("test1").content = inner.encode("utf8")
 
-        assert d.exists(), f"Directory setup failed: source directory {path} should exist but doesn't. Check test setup."
+        assert (
+            d.exists()
+        ), f"Directory setup failed: source directory {path} should exist but doesn't. Check test setup."
 
         copyPath = root / "test_folder_operation_copy"
         movePath = root / "test_folder_operation_move"
@@ -292,9 +302,16 @@ class TestFileSystem:
         # Test recursive traversal (files only, default behavior)
         res1 = tuple(i.path for i in d.recursiveTraversal())
         expected_files = [
-            d["test1"], d["test2"], t3["test4"], t3["test5"], 
-            t6["test7"], t6["test8"], t9["test10"], t9["test11"], 
-            t12["test13"], t12["test14"]
+            d["test1"],
+            d["test2"],
+            t3["test4"],
+            t3["test5"],
+            t6["test7"],
+            t6["test8"],
+            t9["test10"],
+            t9["test11"],
+            t12["test13"],
+            t12["test14"],
         ]
 
         assert len(res1) == len(expected_files), (
@@ -311,9 +328,21 @@ class TestFileSystem:
         # Test recursive traversal including directories
         res2 = tuple(i.path for i in d.recursiveTraversal(hideDirectory=False))
         expected_all_items = [
-            d["test1"], d["test2"], t3["test4"], t3["test5"], 
-            t6["test7"], t6["test8"], t9["test10"], t9["test11"], 
-            t12["test13"], t12["test14"], t3, t6, t9, t12, d
+            d["test1"],
+            d["test2"],
+            t3["test4"],
+            t3["test5"],
+            t6["test7"],
+            t6["test8"],
+            t9["test10"],
+            t9["test11"],
+            t12["test13"],
+            t12["test14"],
+            t3,
+            t6,
+            t9,
+            t12,
+            d,
         ]
 
         assert len(res2) == len(expected_all_items), (
@@ -455,6 +484,53 @@ class TestFileSystem:
                         f"Check ThreadedFileHashCalculator error handling."
                     )
 
+    def test_div_operators(self):
+        """Test division operators for Directory objects"""
+        path = root / "test_div_operators"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+
+        t1 = d.createFile("test1")
+        file_result = d / "test1"
+        assert type(file_result) == doFolder.File and t1.path == file_result.path, (
+            f"Single slash operator failed: expected doFolder.File with path {t1.path}, "
+            f"but got {type(file_result)} with path {getattr(file_result, 'path', 'N/A')}. "
+            f"Check '/' operator implementation for accessing files."
+        )
+
+        d2 = d.createDir("test2")
+        d2.createDir("test3")
+        dir_result = d2 // "test3"
+        assert type(dir_result) == doFolder.Directory, (
+            f"Double slash operator failed: expected doFolder.Directory for non-existent path 'test3', "
+            f"but got {type(dir_result)}. Check '//' operator implementation for directory creation/access."
+        )
+
+        try:
+            d // "test1"
+        except doFolder.exception.PathTypeError:
+            pass
+        else:
+            raise AssertionError(
+                "PathTypeError not raised: '//' operator should raise PathTypeError when trying to "
+                "access a file as a directory, but no exception was thrown. "
+                "Check '//' operator type validation logic."
+            )
+
+        d3 = d // "test2" // "test3"
+        assert d3.isDir() == True, (
+            f"Chained double slash operator failed: expected d3 to be a directory, "
+            f"but isDir() returned {d3.isDir()}. Check chained '//' operator implementation "
+            f"and directory creation logic."
+        )
+
+        d3.createFile("test4")
+        created_file = d3["test4"]
+        assert created_file.isFile() == True, (
+            f"File creation in chained directory failed: expected 'test4' to be a file, "
+            f"but isFile() returned {created_file.isFile()}. Check file creation in directories "
+            f"created through chained '//' operators."
+        )
+
 
 class TestCompareSystem:
     """
@@ -518,7 +594,7 @@ class TestCompareSystem:
         path = root / "test_compare_dir"
 
         d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
-        
+
         # Create complex nested structure
         t1 = d.createDir("test1")
         t1.createFile("test2").content = randomFileContent(1024 * 1024).encode("utf8")
@@ -606,7 +682,7 @@ class TestCompareSystem:
         assert (
             diff0 is not None
         ), f"Content difference detection failed: directories with different file content should show differences but getDifference() returned None. Check CONTENT comparison sensitivity."
-        
+
         # Verify difference structure and path
         diff1 = diff0.sub[0].sub[0].sub[0]
         expected_path1 = d.path / "test1/test4/test10/test12"
@@ -616,7 +692,7 @@ class TestCompareSystem:
             and diff1.path2 == expected_path2
             and diff1.diffType == doFolder.compare.DifferenceType.FILE_DIFFERENCE
         ), f"Difference details incorrect: expected paths {expected_path1} and {expected_path2} with FILE_DIFFERENCE type, but got {diff1.path1} and {diff1.path2} with {diff1.diffType}. Check difference tree structure."
-        
+
         flat_diffs = diff0.toFlat()
         assert (
             len(flat_diffs) == 4
@@ -629,15 +705,16 @@ class TestCompareSystem:
             )
             is None
         ), f"Size comparison failed: directories with same file sizes should show no differences but getDifference() returned a result. Check SIZE comparison logic."
-        
+
         # Change file size and test again
         t8["test9"].content = randomFileContent(1024 * 5).encode("utf8")
         size_diff = doFolder.compare.getDifference(
             d["test1"], d["test1_copy"], doFolder.compare.CompareMode.SIZE
         )
         assert (
-            size_diff is not None and 
-            size_diff.sub[0].sub[0].sub[0].diffType == doFolder.compare.DifferenceType.FILE_DIFFERENCE
+            size_diff is not None
+            and size_diff.sub[0].sub[0].sub[0].diffType
+            == doFolder.compare.DifferenceType.FILE_DIFFERENCE
         ), f"Size difference detection failed: directories with different file sizes should show FILE_DIFFERENCE but didn't. Check SIZE comparison sensitivity."
 
         # Test ignore mode (should never find differences)
@@ -654,6 +731,7 @@ class TestCompareSystem:
             d["test1"], d["test1_copy"], doFolder.compare.CompareMode.IGNORE
         )
         assert (
-            delete_diff is not None and
-            delete_diff.toFlat()[-1].diffType == doFolder.compare.DifferenceType.NOT_EXISTS
+            delete_diff is not None
+            and delete_diff.toFlat()[-1].diffType
+            == doFolder.compare.DifferenceType.NOT_EXISTS
         ), f"Deletion difference detection failed: missing file should show NOT_EXISTS difference type but didn't. Check difference detection for missing files."
