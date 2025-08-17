@@ -954,7 +954,7 @@ class Directory(FileSystemItemBase):
     def __floordiv__(self, other: _tt.Pathable) -> "Directory":
         """Floor division operator (//) to navigate to a child directory.
         Use it only when you have a strong desire for the result to be a directory.
-        We'll create it if it doesn't exist, and raise an error if it's a file.
+        The resulting path must be a directory, and an error will be raised if it is not.
 
         Args:
             other (Pathable): Path component to append to this directory's path.
@@ -973,7 +973,7 @@ class Directory(FileSystemItemBase):
         """
         target = self.path.__truediv__(other)
         res = createItem(
-            target, unExistsMode=UnExistsMode.CREATE, exceptType=ItemType.DIR
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
         if isFile(res):
             raise _ex.PathTypeError(f"{target} is not a directory.")
@@ -1015,7 +1015,7 @@ class Directory(FileSystemItemBase):
         """
         target = self.path.__rtruediv__(other)
         res = createItem(
-            target, unExistsMode=UnExistsMode.CREATE, exceptType=ItemType.DIR
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
         if isFile(res):
             raise _ex.PathTypeError(f"{target} is not a directory.")
