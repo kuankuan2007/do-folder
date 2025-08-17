@@ -14,6 +14,8 @@ Main functions:
 - isFile()/isDir(): Type checking functions
 """
 
+# pylint: disable=too-many-lines
+
 import shutil as _shutil
 import json as _json
 import io as _io
@@ -25,7 +27,7 @@ from .enums import ErrorMode, UnExistsMode, ItemType
 from . import (
     exception as _ex,
     globalType as _tt,
-    hashing as _hash
+    hashing as _hash,
 )  # pylint: disable=unused-import
 
 
@@ -247,7 +249,7 @@ class FileSystemItemBase(_tt.abc.ABC):
     def isFile(self):
         """Check if this object is a File.
 
-        .. versionchanged:: 2.2.3 
+        .. versionchanged:: 2.2.3
             This method determines the object type rather than the actual path type.
         """
         return isFile(self)
@@ -255,7 +257,7 @@ class FileSystemItemBase(_tt.abc.ABC):
     def isDir(self):
         """Check if this object is a Directory.
 
-        .. versionchanged:: 2.2.3 
+        .. versionchanged:: 2.2.3
             This method determines the object type rather than the actual path type.
         """
         return isDir(self)
@@ -336,7 +338,7 @@ class File(FileSystemItemBase):
         """
         return self.path.open(*args, **kwargs)  # pylint: disable=unspecified-encoding
 
-    def io(self, mode:str="r"):
+    def io(self, mode: str = "r"):
         """Create a FileIO object for the file.
 
         Args:
@@ -344,10 +346,11 @@ class File(FileSystemItemBase):
 
         Returns:
             FileIO: FileIO object for the file.
-        
+
         .. versionadded:: 2.2.3
         """
-        return _io.FileIO(self.path,mode)
+        return _io.FileIO(self.path, mode)
+
     @property
     def content(self) -> _tt.Union[bytes, _tt.NoReturn]:
         """Get file content as bytes.
@@ -390,7 +393,7 @@ class File(FileSystemItemBase):
         _shutil.move(self.path, target)
         self.path = target
 
-    def hash(self, algorithm: str = 'sha256') -> str:
+    def hash(self, algorithm: str = "sha256") -> str:
         """Calculate file content hash.
 
         Args:
@@ -538,6 +541,10 @@ class Directory(FileSystemItemBase):
 
         Returns:
             FileSystemItem: FileSystemItem for the child.
+
+        Note:
+            We recommend using the "/"(truediv) or "//"(floordiv) operator for path traversal after version 2.2.5
+            But you can still use the old methods if you prefer.
         """
         return self._get(name, unExistsMode=UnExistsMode.ERROR)
 
@@ -923,6 +930,97 @@ class Directory(FileSystemItemBase):
             ),
         )
 
+    def __truediv__(self, other: _tt.Pathable) -> "FileSystemItem":
+        """Division operator (/) to navigate to a child directory or file.
+        Use it to append a path component to this directory's path.
+
+        Args:
+            other (Pathable): Path component to append to this directory's path.
+
+        Returns:
+            FileSystemItem: FileSystemItem for the resulting path.
+
+        Example:
+            >>> dir = Directory("/home/user")
+            >>> child = dir / "documents"  # Returns FileSystemItem for "/home/user/documents"
+
+        .. versionadded:: 2.2.5
+        """
+        target = self.path.__truediv__(other)
+        return createItem(
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
+        )
+
+    def __floordiv__(self, other: _tt.Pathable) -> "Directory":
+        """Floor division operator (//) to navigate to a child directory.
+        Use it only when you have a strong desire for the result to be a directory.
+        The resulting path must be a directory, and an error will be raised if it is not.
+
+        Args:
+            other (Pathable): Path component to append to this directory's path.
+
+        Returns:
+            Directory: Directory object for the resulting path.
+
+        Raises:
+            PathTypeError: If the resulting path exists but is a file, not a directory.
+
+        Example:
+            >>> dir = Directory("/home/user")
+            >>> subdir = dir // "projects"  # Creates and returns Directory for "/home/user/projects"
+
+        .. versionadded:: 2.2.5
+        """
+        target = self.path.__truediv__(other)
+        res = createItem(
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
+        )
+        if isFile(res):
+            raise _ex.PathTypeError(f"{target} is not a directory.")
+        return res
+
+    def __rtruediv__(self, other: _tt.Pathable) -> "FileSystemItem":
+        """Reverse path division operator for right-hand side path operations.
+
+        See `__truediv__` for more details.
+
+        Args:
+            other (Pathable): Left-hand side path component.
+
+        Returns:
+            FileSystemItem: FileSystemItem for the resulting path.
+
+        .. versionadded:: 2.2.5
+        """
+        target = self.path.__rtruediv__(other)
+        return createItem(
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
+        )
+
+    def __rfloordiv__(self, other: _tt.Pathable) -> "Directory":
+        """Reverse floor division operator for right-hand side directory creation.
+
+        See `__floordiv__` for more details.
+
+        Args:
+            other (Pathable): Left-hand side path component.
+
+        Returns:
+            Directory: Directory object for the resulting path.
+
+        Raises:
+            PathTypeError: If the resulting path exists but is a file, not a directory.
+
+        .. versionadded:: 2.2.5
+        """
+        target = self.path.__rtruediv__(other)
+        res = createItem(
+            target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
+        )
+        if isFile(res):
+            raise _ex.PathTypeError(f"{target} is not a directory.")
+        return res
+
 
 FileSystemItem = _tt.Union[File, Directory]
 """Union type representing either a File or Directory object.
@@ -943,8 +1041,8 @@ Includes path strings/objects and existing FileSystemItem instances.
 @_deprecated("Use Directory instead", version="2.0")
 class Folder(Directory):
     """Legacy alias for Directory class.
-    
+
     .. deprecated:: 2.0
-       Use Directory class instead. This class exists only for migration 
+       Use Directory class instead. This class exists only for migration
        convenience from version 1.0.
     """
