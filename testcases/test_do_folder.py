@@ -498,6 +498,7 @@ class TestFileSystem:
         )
 
         d2 = d.createDir("test2")
+        d2.createDir("test3")
         dir_result = d2 // "test3"
         assert type(dir_result) == doFolder.Directory, (
             f"Double slash operator failed: expected doFolder.Directory for non-existent path 'test3', "
