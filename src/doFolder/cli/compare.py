@@ -3,18 +3,21 @@ Define the CLI for doFolder.
 
 .. versionadded:: 2.3.0
 """
+# pylint: disable=line-too-long
 
-# pylint: disable=import-outside-toplevel, line-too-long
-import sys
+
 import datetime
-
+from enum import Enum as _Enum
 
 import rich as _rich
 import rich.console as _rich_console
 import rich.table as _rich_table
 import rich.prompt as _rich_prompt
 
-from . import (
+from . import util
+
+
+from .. import (
     globalType as _tt,
     fileSystem as _fs,
     compare as _compare,
@@ -30,23 +33,15 @@ console.no_color = True
 console.legacy_windows = True
 
 
-def doCompare() -> _tt.NoReturn:
-    """
-    The implementation of the command-line tool `do-compare`
-    You can also use it as `do-folder compare` or `python3 -m doFolder compare`.
-    """
-    sys.exit(compareCli())
-
-
 def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
     """
     The implementation of the command-line tool `do-compare`
     You can also use it as `do-folder compare` or `python3 -m doFolder compare`.
     """
 
-    import argparse as _argparse
+    parser = util.argparse.ArgumentParser(description="Compare two filesystem items.")
 
-    parser = _argparse.ArgumentParser(description="Compare two filesystem items.")
+    util.addVersionInfo(parser)
 
     parser.add_argument("path_A", type=str, help="Path to the first file")
     parser.add_argument("path_B", type=str, help="Path to the second file")
@@ -109,18 +104,6 @@ def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
         default="AUTO",
         help="Relative timestamp format: AUTO for automatic detection, ALWAYS for always relative, NEVER for absolute timestamps. Default is AUTO, and using the -r parameter alone indicates ALWAYS.",
     )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version=f"{__pkgname__} {__version__}",
-    )
-    parser.add_argument(
-        "-vv",
-        "--full-version",
-        action="version",
-        version=f"{__pkgname__} {__version__} From Python {_env.PYTHON_VERSION_STR}({_env.PYTHON_EXECUTABLE})",
-    )
     args = parser.parse_args(arguments)
     return _compareCli(
         pathA=_fs.Path(args.path_A),
@@ -141,8 +124,61 @@ def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
         relativeTimestamp=args.relative_timestamp,
     )
 
+class DiffPlan(_Enum):
+    """
+    Enum to represent the plan for handling differences.
+    """
 
-def formatTimestamp(
+    PENDING = "Pending"
+    PENDING_OVERWRITE = "Pending(Overwrite)"
+    IGNORE = "Ignore"
+    A2B = "A2B"
+    A2B_OVERWRITE = "A2B(Overwrite)"
+    B2A = "B2A"
+    B2A_OVERWRITE = "B2A(Overwrite)"
+
+    @staticmethod
+    def toOverwrite(plan: "DiffPlan") -> "DiffPlan":
+        """
+        Convert a DiffPlan to its overwrite variant.
+        """
+        return {
+            DiffPlan.PENDING: DiffPlan.PENDING_OVERWRITE,
+            DiffPlan.A2B: DiffPlan.A2B_OVERWRITE,
+            DiffPlan.B2A: DiffPlan.B2A_OVERWRITE,
+        }.get(plan, plan)
+
+    @staticmethod
+    def toNonOverwrite(plan: "DiffPlan") -> "DiffPlan":
+        """
+        Convert a DiffPlan to its non-overwrite variant.
+        """
+        return {
+            DiffPlan.PENDING_OVERWRITE: DiffPlan.PENDING,
+            DiffPlan.A2B_OVERWRITE: DiffPlan.A2B,
+            DiffPlan.B2A_OVERWRITE: DiffPlan.B2A,
+        }.get(plan, plan)
+
+    @staticmethod
+    def isPending(plan: "DiffPlan") -> bool:
+        """
+        Check if the plan is pending or pending overwrite.
+        """
+        return plan in (DiffPlan.PENDING, DiffPlan.PENDING_OVERWRITE)
+
+    @staticmethod
+    def isOverwrite(plan: "DiffPlan") -> bool:
+        """
+        Check if the plan is overwrite or overwrite variant.
+        """
+        return plan in (
+            DiffPlan.PENDING_OVERWRITE,
+            DiffPlan.A2B_OVERWRITE,
+            DiffPlan.B2A_OVERWRITE,
+        )
+
+
+def _formatTimestamp(
     target: datetime.datetime,
     base: datetime.datetime = datetime.datetime.now(),
     relativeTimestamp: _tt.Literal["ALWAYS", "NEVER", "AUTO"] = "AUTO",
@@ -220,60 +256,6 @@ def _compareCli(
 
         console.no_color = noColor
         console.legacy_windows = noColor
-        from enum import Enum as _Enum
-
-        class DiffPlan(_Enum):
-            """
-            Enum to represent the plan for handling differences.
-            """
-
-            PENDING = "Pending"
-            PENDING_OVERWRITE = "Pending(Overwrite)"
-            IGNORE = "Ignore"
-            A2B = "A2B"
-            A2B_OVERWRITE = "A2B(Overwrite)"
-            B2A = "B2A"
-            B2A_OVERWRITE = "B2A(Overwrite)"
-
-            @staticmethod
-            def toOverwrite(plan: "DiffPlan") -> "DiffPlan":
-                """
-                Convert a DiffPlan to its overwrite variant.
-                """
-                return {
-                    DiffPlan.PENDING: DiffPlan.PENDING_OVERWRITE,
-                    DiffPlan.A2B: DiffPlan.A2B_OVERWRITE,
-                    DiffPlan.B2A: DiffPlan.B2A_OVERWRITE,
-                }.get(plan, plan)
-
-            @staticmethod
-            def toNonOverwrite(plan: "DiffPlan") -> "DiffPlan":
-                """
-                Convert a DiffPlan to its non-overwrite variant.
-                """
-                return {
-                    DiffPlan.PENDING_OVERWRITE: DiffPlan.PENDING,
-                    DiffPlan.A2B_OVERWRITE: DiffPlan.A2B,
-                    DiffPlan.B2A_OVERWRITE: DiffPlan.B2A,
-                }.get(plan, plan)
-
-            @staticmethod
-            def isPending(plan: "DiffPlan") -> bool:
-                """
-                Check if the plan is pending or pending overwrite.
-                """
-                return plan in (DiffPlan.PENDING, DiffPlan.PENDING_OVERWRITE)
-
-            @staticmethod
-            def isOverwrite(plan: "DiffPlan") -> bool:
-                """
-                Check if the plan is overwrite or overwrite variant.
-                """
-                return plan in (
-                    DiffPlan.PENDING_OVERWRITE,
-                    DiffPlan.A2B_OVERWRITE,
-                    DiffPlan.B2A_OVERWRITE,
-                )
 
         _writeOutput = console.print
 
@@ -346,11 +328,11 @@ def _compareCli(
             if diff.diffType == _compare.DifferenceType.FILE_DIFFERENCE:
                 _statue = "File Different"
                 _type = "File"
-                _aLastModified = formatTimestamp(
+                _aLastModified = _formatTimestamp(
                     datetime.datetime.fromtimestamp(diff.path1.stat().st_mtime),
                     relativeTimestamp=relativeTimestamp,
                 )
-                _bLastModified = formatTimestamp(
+                _bLastModified = _formatTimestamp(
                     datetime.datetime.fromtimestamp(diff.path2.stat().st_mtime),
                     relativeTimestamp=relativeTimestamp,
                 )
@@ -361,11 +343,11 @@ def _compareCli(
                     + "/"
                     + ("F" if diff.path2.is_file() else "D")
                 )
-                _aLastModified = formatTimestamp(
+                _aLastModified = _formatTimestamp(
                     datetime.datetime.fromtimestamp(diff.path1.stat().st_mtime),
                     relativeTimestamp=relativeTimestamp,
                 )
-                _bLastModified = formatTimestamp(
+                _bLastModified = _formatTimestamp(
                     datetime.datetime.fromtimestamp(diff.path2.stat().st_mtime),
                     relativeTimestamp=relativeTimestamp,
                 )
@@ -373,14 +355,14 @@ def _compareCli(
                 if diff.path1.exists():
                     _statue = "A only"
                     _type = "File" if diff.path1.is_file() else "Directory"
-                    _aLastModified = formatTimestamp(
+                    _aLastModified = _formatTimestamp(
                         datetime.datetime.fromtimestamp(diff.path1.stat().st_mtime),
                         relativeTimestamp=relativeTimestamp,
                     )
                 else:
                     _statue = "B only"
                     _type = "File" if diff.path2.is_file() else "Directory"
-                    _bLastModified = formatTimestamp(
+                    _bLastModified = _formatTimestamp(
                         datetime.datetime.fromtimestamp(diff.path2.stat().st_mtime),
                         relativeTimestamp=relativeTimestamp,
                     )
@@ -471,7 +453,7 @@ def _compareCli(
 
         if not sync:
             _writeOutput(
-                f"[yellow]There are {len(diffList)} differences found. Use -S(--sync) to sync them.szz[/yellow]"
+                f"[yellow]There are {len(diffList)} differences found. Use -S(--sync) to sync them[/yellow]"
             )
             return 0
 

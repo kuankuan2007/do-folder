@@ -1,3 +1,3 @@
-from src.doFolder import cli
-import doFolder
-cli.doCompare()
+from src.doFolder import __main__
+
+# scripts.doCompare()

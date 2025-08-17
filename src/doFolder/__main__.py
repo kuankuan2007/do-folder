@@ -1,33 +1,12 @@
 """
-The union entry point for the doFolder CLI.
+Main entry point when doFolder is executed as a module.
+
+This module is executed when the package is run directly with:
+    python -m doFolder [arguments]
+
+It imports and calls the main function from the scripts module.
 """
 
-import argparse
-import sys
-
-from .cli import compareCli
-from . import __pkgname__, __version__
-
-subcommands = {
-    "compare": compareCli,
-}
-
-
-def main():
-    """The union entry point for the doFolder CLI."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("subcommand", help="something to do", choices=["compare"])
-    parser.add_argument(
-        "-v", "--version", action="version", version=f"{__pkgname__} {__version__}"
-    )
-    parser.add_argument(
-        "args", nargs=argparse.REMAINDER, help="arguments for the subcommand"
-    )
-    args = parser.parse_args()
-    if args.subcommand not in subcommands:
-        parser.error(f"Unknown subcommand: {args.subcommand}")
-    exitcode = subcommands[args.subcommand](*args.args)
-    sys.exit(exitcode)
-
+from .scripts import main
 
 main()
