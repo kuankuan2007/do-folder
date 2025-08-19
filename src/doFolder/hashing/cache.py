@@ -161,9 +161,9 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
 
         assert algorithm, "algorithm is required when target is not FileHashResult"
 
-        if isinstance(target, _fs.FileSystemItem):
-            return str(target.path), algorithm
-        return str(target), algorithm
+        if isinstance(target, _fs.Path):
+            return str(target)
+        return str(target.path), algorithm
 
 
 class MemoryFileHashManager(FileHashCacheManagerBase):
