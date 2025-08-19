@@ -40,7 +40,7 @@ Algorithm = str
 
 Algorithms = _tt.Union[Algorithm, _tt.Iterable[Algorithm]]
 
-_Algorithms = _tt.Iterable[Algorithm]
+_Algorithms = _tt.Iterable[Algorithm]  # pylint: disable=invalid-name
 
 
 def normalizeAlgorithms(algorithms: Algorithms) -> _Algorithms:
@@ -364,16 +364,7 @@ def fileHash(
         The returned FileHashResult can be used with caching systems to avoid
         recalculating hashes for unchanged files.
     """
-    calcTime = time.time()
-    res = calc(_fileContent(file, fileIOMinSize), algorithm, chunkSize)[algorithm]
-
-    return FileHashResult(
-        hash=res,
-        algorithm=algorithm,
-        path=file.path,
-        mtime=file.state.st_mtime,
-        calcTime=calcTime,
-    )
+    return multipleFileHash(file, (algorithm,), chunkSize, fileIOMinSize)[algorithm]
 
 
 class FileHashCacheManagerBase(_tt.abc.ABC):
@@ -751,10 +742,8 @@ class FileHashCalculator:
             - ALWAYS: Ignores cache, always calculates
             - NEVER: Always uses cache if available
         """
-        cacheResult = self.findCache(file, algorithm)
-        if cacheResult is not None:
-            return cacheResult
-        return self.calc(file)
+        _algorithm = algorithm or self.algorithm
+        return self.multipleGet(file, (_algorithm,))[_algorithm]
 
     def multipleGet(
         self, file: "_fs.File", algorithms: Algorithms
@@ -868,15 +857,8 @@ class FileHashCalculator:
             The result is automatically stored using the cacheManager.
         """
 
-        res = fileHash(
-            file,
-            algorithm=algorithm or self.algorithm,
-            chunkSize=self.chunkSize,
-            fileIOMinSize=self.fileIOMinSize,
-        )
-
-        self.cacheManager.set(file, res)
-        return res
+        _algorithm = algorithm or self.algorithm
+        return self.multipleCalc(file, (_algorithm,))[_algorithm]
 
     def multipleCalc(
         self, file: "_fs.File", algorithms: Algorithms
