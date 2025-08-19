@@ -368,6 +368,36 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
     def getKey(self, target: FileHashResult) -> _tt.Tuple[str, str]: ...
 
     def getKey(self, target, algorithm=None):
+        """
+        Generate a cache key tuple from target object and algorithm.
+
+        This method creates a standardized cache key tuple that uniquely identifies
+        a file hash entry based on the target object and algorithm. The key is used
+        internally by cache managers to store and retrieve hash results efficiently.
+
+        Args:
+            target (Union[FileHashResult, FileSystemItem, Any]): The target object
+                to generate a key for. Can be:
+                - FileHashResult: Uses the result's path and algorithm
+                - FileSystemItem (File, Path, etc.): Uses the item's path with provided algorithm
+                - Any other object: Converts to string and uses with provided algorithm
+            algorithm (str, optional): Hash algorithm name. Required when target is not
+                a FileHashResult. Ignored when target is a FileHashResult (uses result's
+                algorithm instead).
+
+        Returns:
+            Tuple[str, str]: A tuple containing (path_string, algorithm_string) that
+                serves as a unique cache key. The path is always converted to string
+                for consistent key generation across different path-like objects.
+
+        Raises:
+            AssertionError: If algorithm is not provided when target is not a FileHashResult.
+
+        Note:
+            This method is primarily intended for internal use by cache managers
+            to maintain consistent key generation across different input types.
+            The returned tuple format ensures stable dictionary keys for caching.
+        """
         if isinstance(target, FileHashResult):
             return str(target.path), target.algorithm
 
