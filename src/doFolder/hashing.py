@@ -11,6 +11,8 @@ It provides the underlying support for the File.hash method.
 .. versionadded:: 2.2.3
 """
 
+# pylint: disable=too-many-lines
+
 import hashlib
 import time
 from dataclasses import dataclass, field
@@ -33,6 +35,29 @@ DEFAULT_FILE_IO_MIN_SIZE = DEFAULT_CHUNK_SIZE * 4
 
 #: Default number of threads for parallel hash calculation
 DEFAULT_THREAD_NUM = 4
+
+Algorithm = str
+
+Algorithms = _tt.Union[Algorithm, _tt.Iterable[Algorithm]]
+
+_Algorithms = _tt.Iterable[Algorithm]
+
+
+def normalizeAlgorithms(algorithms: Algorithms) -> _Algorithms:
+    """
+    Normalize algorithm input to a consistent iterable format.
+
+    Converts single algorithm strings to tuples for uniform processing.
+
+    Args:
+        algorithms (Union[str, Iterable[str]]): Single algorithm or iterable of algorithms.
+
+    Returns:
+        Iterable[str]: Tuple of algorithm names for consistent iteration.
+    """
+    if isinstance(algorithms, Algorithm):
+        return (algorithms,)
+    return tuple(algorithms)
 
 
 @dataclass
@@ -57,13 +82,18 @@ class FileHashResult:
     """
 
     hash: str
-    algorithm: str
+    algorithm: Algorithm
     path: "_fs.Path"
     mtime: float
     calcTime: float
 
 
-def _calc(content: _tt.Iterable[bytes], algorithm: str = DEFAULT_HASH_ALGORITHM) -> str:
+MultipleHashResult = _tt.Dict[Algorithm, FileHashResult]
+
+
+def _calc(
+    content: _tt.Iterable[bytes], algorithm: _Algorithms
+) -> _tt.Dict[Algorithm, str]:
     """
     Internal function to calculate hash from an iterable of byte chunks.
 
@@ -88,10 +118,11 @@ def _calc(content: _tt.Iterable[bytes], algorithm: str = DEFAULT_HASH_ALGORITHM)
         It gradually processes the content to ensure that the memory usage remains
             within a reasonable range regardless of how the total amount of content changes
     """
-    hashObj = hashlib.new(algorithm)
+    hashObjs = (hashlib.new(i) for i in algorithm)
     for chunk in content:
-        hashObj.update(chunk)
-    return hashObj.hexdigest()
+        for hashObj in hashObjs:
+            hashObj.update(chunk)
+    return {i: hashObj.hexdigest() for i, hashObj in zip(algorithm, hashObjs)}
 
 
 def _toIterable(
@@ -129,9 +160,9 @@ def _toIterable(
 
 def calc(
     content: _tt.Union[_tt.BinaryIO, bytes],
-    algorithm: str = DEFAULT_HASH_ALGORITHM,
+    algorithm: Algorithms = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
-) -> str:
+) -> _tt.Dict[str, str]:
     """
     Calculate the hash of arbitrary content (bytes or file-like object).
 
@@ -163,7 +194,7 @@ def calc(
         >>> with open("file.txt", "rb") as f:
         ...     hash_value = calc(f, algorithm="md5")
     """
-    return _calc(_toIterable(content, chunkSize), algorithm)
+    return _calc(_toIterable(content, chunkSize), normalizeAlgorithms(algorithm))
 
 
 def _fileContent(
@@ -198,9 +229,98 @@ def _fileContent(
     return file.content
 
 
+def multipleFileHash(
+    file: "_fs.File",
+    algorithms: Algorithms = DEFAULT_HASH_ALGORITHM,
+    chunkSize: int = DEFAULT_CHUNK_SIZE,
+    fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE,
+) -> MultipleHashResult:
+    """
+    Calculate multiple cryptographic hashes of a file efficiently in a single pass.
+
+    This function computes multiple hash algorithms for a single file in one I/O
+    operation, making it more efficient than calling fileHash() multiple times.
+    It reads the file content once and applies all specified algorithms simultaneously,
+    returning an iterable of FileHashResult objects for each algorithm.
+
+    This approach is particularly beneficial when you need the same file hashed with
+    multiple algorithms (e.g., for security verification, compatibility with different
+    systems, or comprehensive file integrity checking).
+
+    Args:
+        file (File): The file object to hash. Must be a valid file from the
+            fileSystem module with accessible content and metadata.
+        algorithms (Union[str, Iterable[str]], optional): Hash algorithm(s) to use.
+            Can be a single algorithm name (str) or an iterable of algorithm names.
+            Each algorithm must be supported by Python's hashlib (e.g., 'sha256',
+            'md5', 'sha1', 'sha512', 'blake2b'). Defaults to 'sha256'.
+        chunkSize (int, optional): Size of chunks for reading large files.
+            Larger chunks may improve I/O performance but use more memory.
+            Defaults to 16KB.
+        fileIOMinSize (int, optional): File size threshold for I/O optimization.
+            Files larger than this use streaming I/O, smaller ones are read
+            entirely into memory. Defaults to 64KB.
+
+    Returns:
+        Iterable[FileHashResult]: An iterable yielding FileHashResult objects,
+            one for each specified algorithm. Each result contains:
+            - hash: The calculated hash as hexadecimal string
+            - algorithm: The specific algorithm used for this result
+            - path: The file's path
+            - mtime: File modification time when hashed
+            - calcTime: Timestamp of hash calculation (same for all results)
+
+    Raises:
+        ValueError: If any specified hash algorithm is not supported by hashlib.
+        IOError: If the file cannot be read.
+        OSError: If file metadata cannot be accessed.
+
+    Example:
+        Calculate multiple hashes for a single file::
+
+            # Single algorithm (equivalent to fileHash)
+            results = list(multipleFileHash(file, "sha256"))
+            sha256_result = results[0]
+
+            # Multiple algorithms in one pass
+            results = list(multipleFileHash(file, ["sha256", "md5", "sha1"]))
+            for result in results:
+                print(f"{result.algorithm}: {result.hash}")
+
+            # Using with different algorithms
+            algorithms = ["sha256", "blake2b", "sha512"]
+            results = {r.algorithm: r.hash for r in multipleFileHash(file, algorithms)}
+
+    Performance Notes:
+        - More efficient than multiple calls to fileHash() for the same file
+        - All algorithms process the same data stream simultaneously
+        - File is read only once regardless of the number of algorithms
+        - Memory usage scales with the number of algorithms (one hasher per algorithm)
+        - Calculation time is roughly the sum of individual algorithm times
+
+    Note:
+        While this function accepts a single algorithm string for compatibility,
+        if you only need one hash, consider using fileHash() instead as it returns
+        a single FileHashResult rather than an iterable.
+    """
+    calcTime = time.time()
+    res = calc(_fileContent(file, fileIOMinSize), algorithms, chunkSize)
+
+    return {
+        al: FileHashResult(
+            hash=re,
+            algorithm=al,
+            path=file.path,
+            mtime=file.state.st_mtime,
+            calcTime=calcTime,
+        )
+        for al, re in res.items()
+    }
+
+
 def fileHash(
     file: "_fs.File",
-    algorithm: str = DEFAULT_HASH_ALGORITHM,
+    algorithm: Algorithm = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
     fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE,
 ) -> FileHashResult:
@@ -244,12 +364,15 @@ def fileHash(
         The returned FileHashResult can be used with caching systems to avoid
         recalculating hashes for unchanged files.
     """
+    calcTime = time.time()
+    res = calc(_fileContent(file, fileIOMinSize), algorithm, chunkSize)[algorithm]
+
     return FileHashResult(
-        hash=calc(_fileContent(file, fileIOMinSize), algorithm, chunkSize),
+        hash=res,
         algorithm=algorithm,
         path=file.path,
         mtime=file.state.st_mtime,
-        calcTime=time.time(),
+        calcTime=calcTime,
     )
 
 
@@ -633,6 +756,28 @@ class FileHashCalculator:
             return cacheResult
         return self.calc(file)
 
+    def multipleGet(
+        self, file: "_fs.File", algorithms: Algorithms
+    ) -> MultipleHashResult:
+        """
+        Get multiple hash results for a file, using cache when possible.
+
+        Efficiently retrieves hash results for multiple algorithms, leveraging cache
+        for available results and calculating only missing ones.
+
+        Args:
+            file (File): The file to hash.
+            algorithms (Union[str, Iterable[str]]): Algorithm(s) to compute hashes for.
+
+        Returns:
+            Dict[str, FileHashResult]: Mapping of algorithm names to hash results.
+        """
+        _algorithms = normalizeAlgorithms(algorithms)
+        cacheResults = tuple(self.findCache(file, i) for i in _algorithms)
+        if all(cacheResults):
+            return dict(zip(_algorithms, _tt.cast(tuple[FileHashResult], cacheResults)))
+        return self.multipleCalc(file, algorithms)
+
     def findCache(
         self, file: "_fs.File", algorithm: _tt.Optional[str] = None
     ) -> _tt.Union[FileHashResult, None]:
@@ -731,6 +876,32 @@ class FileHashCalculator:
         )
 
         self.cacheManager.set(file, res)
+        return res
+
+    def multipleCalc(
+        self, file: "_fs.File", algorithms: Algorithms
+    ) -> MultipleHashResult:
+        """
+        Calculate multiple hashes for a file and cache all results.
+
+        Performs hash calculations for multiple algorithms and stores each
+        result in the cache for future use.
+
+        Args:
+            file (File): The file to calculate hashes for.
+            algorithms (Union[str, Iterable[str]]): Algorithm(s) to compute hashes for.
+
+        Returns:
+            Dict[str, FileHashResult]: Mapping of algorithm names to hash results.
+        """
+        res = multipleFileHash(
+            file,
+            algorithms=algorithms,
+            chunkSize=self.chunkSize,
+            fileIOMinSize=self.fileIOMinSize,
+        )
+        for i in res.values():
+            self.cacheManager.set(file, i)
         return res
 
 
@@ -901,7 +1072,9 @@ class ThreadedFileHashCalculator(FileHashCalculator):
         """
         self.threadPool.shutdown(wait=False)
 
-    def threadedGet(self, file: "_fs.File") -> "Future[FileHashResult]":
+    def threadedGet(
+        self, file: "_fs.File", algorithm: _tt.Optional[Algorithm] = None
+    ) -> "Future[FileHashResult]":
         """
         Get the hash of a file using background thread processing.
 
@@ -938,9 +1111,41 @@ class ThreadedFileHashCalculator(FileHashCalculator):
             Cache validation follows the same rules as the synchronous get() method,
             but the actual calculation (if needed) happens in a background thread.
         """
+        algorithm = algorithm or self.algorithm
         cacheResult = self.findCache(file)
         if cacheResult is not None:
             res = Future()
             res.set_result(cacheResult)
             return res
-        return self.threadPool.submit(self.calc, file)
+        return self.threadPool.submit(self.calc, file, algorithm)
+
+    def threadedMultipleGet(
+        self, file: "_fs.File", algorithms: Algorithms
+    ) -> "Future[MultipleHashResult]":
+        """
+        Get multiple hash results for a file using background thread processing.
+
+        Provides asynchronous calculation of multiple hash algorithms by checking
+        the cache first and only submitting uncached work to the thread pool.
+
+        Args:
+            file (File): The file to hash.
+            algorithms (Union[str, Iterable[str]]): Algorithm(s) to compute hashes for.
+
+        Returns:
+            Future[Dict[str, FileHashResult]]: A Future containing the mapping of
+                algorithm names to hash results.
+                - For complete cache hits: A completed Future with cached results
+                - For cache misses: A Future representing the ongoing calculation
+
+        Note:
+            Cache validation follows the same rules as the synchronous multipleGet() method,
+            but the actual calculation (if needed) happens in a background thread.
+        """
+        _algorithms = normalizeAlgorithms(algorithms)
+        cacheResults = tuple(self.findCache(file, i) for i in _algorithms)
+        if all(cacheResults):
+            res = Future()
+            res.set_result(dict(zip(_algorithms, cacheResults)))
+            return res
+        return self.threadPool.submit(self.multipleCalc, file, _algorithms)
