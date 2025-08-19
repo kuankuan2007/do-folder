@@ -19,8 +19,7 @@ from collections import OrderedDict as _OrderedDict
 from . import globalType as _tt
 from .enums import ReCalcHashMode
 
-if _tt.TYPE_CHECKING:
-    from . import fileSystem as _fs  # pylint: disable=cyclic-import
+from . import fileSystem as _fs  # pylint: disable=cyclic-import
 
 
 #: Default cryptographic hash algorithm used throughout the module
@@ -276,7 +275,7 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
         This is an abstract base class and cannot be instantiated directly.
         Subclasses must implement the get() and set() methods to provide
         actual caching functionality.
-    
+
     .. versionadded:: 2.2.4
     """
 
@@ -293,7 +292,7 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
             for potential future base class functionality.
         """
 
-    def get(self, file: "_fs.File") -> _tt.Union[FileHashResult, None]:
+    def get(self, file: "_fs.File", algorithm: str) -> _tt.Union[FileHashResult, None]:
         """
         Retrieve a cached hash result for the specified file.
 
@@ -359,6 +358,25 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
             The base class implementation raises NotImplementedError.
         """
 
+    @_tt.overload
+    def getKey(self, target: "_fs.File", algorithm: str) -> _tt.Tuple[str, str]: ...
+
+    @_tt.overload
+    def getKey(self, target: "_fs.Path", algorithm: str) -> _tt.Tuple[str, str]: ...
+
+    @_tt.overload
+    def getKey(self, target: FileHashResult) -> _tt.Tuple[str, str]: ...
+
+    def getKey(self, target, algorithm=None):
+        if isinstance(target, FileHashResult):
+            return str(target.path), target.algorithm
+
+        assert algorithm, "algorithm is required when target is not FileHashResult"
+
+        if isinstance(target, _fs.FileSystemItem):
+            return str(target.path), algorithm
+        return str(target), algorithm
+
 
 class MemoryFileHashManager(FileHashCacheManagerBase):
     """
@@ -377,16 +395,17 @@ class MemoryFileHashManager(FileHashCacheManagerBase):
 
     .. versionadded:: 2.2.4
     """
-    _cache: _tt.Dict[str, FileHashResult]
+
+    _cache: _tt.Dict[_tt.Tuple[str, str], FileHashResult]
 
     def __init__(self):
         self._cache = {}
 
-    def get(self, file: "_fs.File"):
-        return self._cache.get(str(file.path))
+    def get(self, file: "_fs.File", algorithm=str):
+        return self._cache.get(self.getKey(file, algorithm))
 
     def set(self, file: "_fs.File", result: FileHashResult):
-        self._cache[str(file.path)] = result
+        self._cache[self.getKey(result)] = result
 
 
 class NullFileHashManager(FileHashCacheManagerBase):
@@ -407,7 +426,8 @@ class NullFileHashManager(FileHashCacheManagerBase):
 
     .. versionadded:: 2.2.4
     """
-    def get(self, file: "_fs.File"):
+
+    def get(self, file: "_fs.File", algorithm=str):
         return None
 
     def set(self, file: "_fs.File", result: FileHashResult):
@@ -440,22 +460,25 @@ class LfuMemoryFileHashManager(FileHashCacheManagerBase):
 
     .. versionadded:: 2.2.4
     """
-    _cache: "_OrderedDict[str, FileHashResult]"
+
+    _cache: "_OrderedDict[_tt.Tuple[str,str], FileHashResult]"
     maxSize: int
 
     def __init__(self, maxSize: int):
         self._cache = _OrderedDict()
         self.maxSize = maxSize
 
-    def get(self, file: "_fs.File"):
-        res = self._cache.get(str(file.path))
+    def get(self, file: "_fs.File", algorithm=str):
+        key = self.getKey(file, algorithm)
+        res = self._cache.get(key)
         if res:
-            self._cache.move_to_end(str(file.path))
+            self._cache.move_to_end(key)
         return res
 
     def set(self, file: "_fs.File", result: FileHashResult):
-        self._cache[str(file.path)] = result
-        self._cache.move_to_end(str(file.path))
+        key = self.getKey(result)
+        self._cache[key] = result
+        self._cache.move_to_end(key)
         if len(self._cache) > self.maxSize:
             self._cache.popitem(last=False)
 
@@ -553,7 +576,9 @@ class FileHashCalculator:
         if self.cacheManager is _DefaultNoneFileHashManager and self.useCache:
             self.cacheManager = MemoryFileHashManager()
 
-    def get(self, file: "_fs.File") -> FileHashResult:
+    def get(
+        self, file: "_fs.File", algorithm: _tt.Optional[str] = None
+    ) -> FileHashResult:
         """
         Get the hash of a file, using cache when possible.
 
@@ -573,12 +598,14 @@ class FileHashCalculator:
             - ALWAYS: Ignores cache, always calculates
             - NEVER: Always uses cache if available
         """
-        cacheResult = self.findCache(file)
+        cacheResult = self.findCache(file, algorithm)
         if cacheResult is not None:
             return cacheResult
         return self.calc(file)
 
-    def findCache(self, file: "_fs.File") -> _tt.Union[FileHashResult, None]:
+    def findCache(
+        self, file: "_fs.File", algorithm: _tt.Optional[str] = None
+    ) -> _tt.Union[FileHashResult, None]:
         """
         Locate and validate a cached hash result for the given file.
 
@@ -596,7 +623,10 @@ class FileHashCalculator:
         Note:
             Uses the configured cacheManager to retrieve cached results.
         """
-        res = self.cacheManager.get(file)  # pylint: disable=assignment-from-none
+        algorithm = algorithm or self.algorithm
+        res = self.cacheManager.get(  # pylint: disable=assignment-from-none
+            file, algorithm
+        )
 
         if self.validateCache(file, res):
             return res
@@ -643,7 +673,9 @@ class FileHashCalculator:
 
         raise ValueError("Invalid reCalcHashMode")
 
-    def calc(self, file: "_fs.File") -> FileHashResult:
+    def calc(
+        self, file: "_fs.File", algorithm: _tt.Optional[str] = None
+    ) -> FileHashResult:
         """
         Calculate the hash of a file and optionally cache the result.
 
@@ -663,7 +695,7 @@ class FileHashCalculator:
 
         res = fileHash(
             file,
-            algorithm=self.algorithm,
+            algorithm=algorithm or self.algorithm,
             chunkSize=self.chunkSize,
             fileIOMinSize=self.fileIOMinSize,
         )
