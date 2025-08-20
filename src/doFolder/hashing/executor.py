@@ -128,7 +128,7 @@ _T = _tt.TypeVar("_T")
 _P = _tt.TypeVar("_P", bound=Future)
 
 
-def futureMap(target: Future[_T], creater: _tt.Callable[[], _P] = Future[_T]):
+def futureMap(target: "Future[_T]", creater: _tt.Callable[[], _P] = Future):
     """
     Map a Future to a new Future using a creator function.
 
