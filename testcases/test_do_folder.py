@@ -355,7 +355,54 @@ class TestFileSystem:
                 f"Recursive traversal with directories missing item: {expected_item.path} not found in results. "
                 f"Check if recursiveTraversal(hideDirectory=False) properly includes all files and directories."
             )
+    def test_div_operators(self):
+        """Test division operators for Directory objects"""
+        path = root / "test_div_operators"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
 
+        t1 = d.createFile("test1")
+        file_result = d / "test1"
+        assert type(file_result) == doFolder.File and t1.path == file_result.path, (
+            f"Single slash operator failed: expected doFolder.File with path {t1.path}, "
+            f"but got {type(file_result)} with path {getattr(file_result, 'path', 'N/A')}. "
+            f"Check '/' operator implementation for accessing files."
+        )
+
+        d2 = d.createDir("test2")
+        d2.createDir("test3")
+        dir_result = d2 // "test3"
+        assert type(dir_result) == doFolder.Directory, (
+            f"Double slash operator failed: expected doFolder.Directory for non-existent path 'test3', "
+            f"but got {type(dir_result)}. Check '//' operator implementation for directory creation/access."
+        )
+
+        try:
+            d // "test1"
+        except doFolder.exception.PathTypeError:
+            pass
+        else:
+            raise AssertionError(
+                "PathTypeError not raised: '//' operator should raise PathTypeError when trying to "
+                "access a file as a directory, but no exception was thrown. "
+                "Check '//' operator type validation logic."
+            )
+
+        d3 = d // "test2" // "test3"
+        assert d3.isDir() == True, (
+            f"Chained double slash operator failed: expected d3 to be a directory, "
+            f"but isDir() returned {d3.isDir()}. Check chained '//' operator implementation "
+            f"and directory creation logic."
+        )
+
+        d3.createFile("test4")
+        created_file = d3["test4"]
+        assert created_file.isFile() == True, (
+            f"File creation in chained directory failed: expected 'test4' to be a file, "
+            f"but isFile() returned {created_file.isFile()}. Check file creation in directories "
+            f"created through chained '//' operators."
+        )
+
+class TestHashing:
     def test_hash(self):
         """Test basic file hashing functionality with different algorithms"""
         path = root / "test_hash"
