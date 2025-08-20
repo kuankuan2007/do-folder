@@ -61,7 +61,7 @@ class FileHashResult:
     calcTime: float
 
 
-MultipleHashResult = _tt.Dict[Algorithm, FileHashResult]
+MultipleHashResult = dict[Algorithm, FileHashResult]
 
 
 def normalizeAlgorithms(algorithms: Algorithms) -> _Algorithms:

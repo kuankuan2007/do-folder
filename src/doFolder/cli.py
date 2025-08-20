@@ -3,7 +3,7 @@ Define the CLI for doFolder.
 
 .. versionadded:: 2.3.0
 """
-
+# pylint: skip-file # This file is currently being edited by another branch.
 # pylint: disable=import-outside-toplevel, line-too-long
 import sys
 import datetime

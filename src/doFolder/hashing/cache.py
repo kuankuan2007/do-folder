@@ -117,13 +117,13 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
         """
 
     @_tt.overload
-    def getKey(self, target: "_fs.File", algorithm: str) -> _tt.Tuple[str, str]: ...
+    def getKey(self, target: "_fs.File", algorithm: str) -> tuple[str, str]: ...
 
     @_tt.overload
-    def getKey(self, target: "_fs.Path", algorithm: str) -> _tt.Tuple[str, str]: ...
+    def getKey(self, target: "_fs.Path", algorithm: str) -> tuple[str, str]: ...
 
     @_tt.overload
-    def getKey(self, target: FileHashResult) -> _tt.Tuple[str, str]: ...
+    def getKey(self, target: FileHashResult) -> tuple[str, str]: ...
 
     def getKey(self, target, algorithm=None):
         """
@@ -184,7 +184,7 @@ class MemoryFileHashManager(FileHashCacheManagerBase):
     .. versionadded:: 2.2.4
     """
 
-    _cache: _tt.Dict[_tt.Tuple[str, str], FileHashResult]
+    _cache: dict[tuple[str, str], FileHashResult]
 
     def __init__(self):
         self._cache = {}
@@ -249,7 +249,7 @@ class LfuMemoryFileHashManager(FileHashCacheManagerBase):
     .. versionadded:: 2.2.4
     """
 
-    _cache: "_OrderedDict[_tt.Tuple[str,str], FileHashResult]"
+    _cache: "_OrderedDict[tuple[str,str], FileHashResult]"
     maxSize: int
 
     def __init__(self, maxSize: int):

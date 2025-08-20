@@ -30,7 +30,7 @@ def _calc(
     content: _tt.Iterable[bytes],
     algorithm: _Algorithms,
     progress: _tt.Optional[ProgressController] = None,
-) -> _tt.Dict[Algorithm, str]:
+) -> dict[Algorithm, str]:
     """
     Internal function to calculate hash from an iterable of byte chunks.
 
@@ -108,7 +108,7 @@ def calc(
     algorithm: Algorithms = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
     progress: _tt.Optional[ProgressController] = None,
-) -> _tt.Dict[str, str]:
+) -> dict[str, str]:
     """
     Calculate the hash of arbitrary content (bytes or file-like object).
 

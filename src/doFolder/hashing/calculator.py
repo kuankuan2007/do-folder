@@ -170,7 +170,7 @@ class FileHashCalculator:
         cacheResults = tuple(self.findCache(file, i) for i in _algorithms)
         if all(cacheResults):
             return dict(
-                zip(_algorithms, _tt.cast(_tt.Tuple[FileHashResult], cacheResults))
+                zip(_algorithms, _tt.cast(tuple[FileHashResult], cacheResults))
             )
         return self.multipleCalc(file, algorithms)
 

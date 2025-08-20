@@ -30,7 +30,7 @@ class ProgressController:
     _progress: int = 0
     _total: int = 100
 
-    _listener: _tt.List[ProgressListener]
+    _listener: list[ProgressListener]
 
     def __init__(self):
         """
@@ -113,7 +113,7 @@ class ProgressController:
 _T = _tt.TypeVar("_T")
 
 
-class FutureWithProgress(_tt.Generic[_T], Future[_T], ProgressController):
+class FutureWithProgress(Future[_T], ProgressController):
     """
     A Future that can report progress.
 
