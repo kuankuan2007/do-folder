@@ -23,10 +23,13 @@ from .util import (
     DEFAULT_FILE_IO_MIN_SIZE,
     DEFAULT_HASH_ALGORITHM,
 )
+from .executor import ProgressController
 
 
 def _calc(
-    content: _tt.Iterable[bytes], algorithm: _Algorithms
+    content: _tt.Iterable[bytes],
+    algorithm: _Algorithms,
+    progress: _tt.Optional[ProgressController] = None,
 ) -> _tt.Dict[Algorithm, str]:
     """
     Internal function to calculate hash from an iterable of byte chunks.
@@ -56,6 +59,8 @@ def _calc(
     for chunk in content:
         for hashObj in hashObjs:
             hashObj.update(chunk)
+        if progress:
+            progress.updateProgress(add=len(chunk))
     return {i: hashObj.hexdigest() for i, hashObj in zip(algorithm, hashObjs)}
 
 
@@ -96,6 +101,7 @@ def calc(
     content: _tt.Union[_tt.BinaryIO, bytes],
     algorithm: Algorithms = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
+    progress: _tt.Optional[ProgressController] = None,
 ) -> _tt.Dict[str, str]:
     """
     Calculate the hash of arbitrary content (bytes or file-like object).
@@ -128,7 +134,9 @@ def calc(
         >>> with open("file.txt", "rb") as f:
         ...     hash_value = calc(f, algorithm="md5")
     """
-    return _calc(_toIterable(content, chunkSize), normalizeAlgorithms(algorithm))
+    return _calc(
+        _toIterable(content, chunkSize), normalizeAlgorithms(algorithm), progress
+    )
 
 
 def _fileContent(
@@ -168,6 +176,7 @@ def multipleFileHash(
     algorithms: Algorithms = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
     fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE,
+    progress: _tt.Optional[ProgressController] = None,
 ) -> MultipleHashResult:
     """
     Calculate multiple cryptographic hashes of a file efficiently in a single pass.
@@ -238,7 +247,9 @@ def multipleFileHash(
         a single FileHashResult rather than an iterable.
     """
     calcTime = time.time()
-    res = calc(_fileContent(file, fileIOMinSize), algorithms, chunkSize)
+    if progress is not None:
+        progress = ProgressController()
+    res = calc(_fileContent(file, fileIOMinSize), algorithms, chunkSize, progress)
 
     return {
         al: FileHashResult(
@@ -257,6 +268,7 @@ def fileHash(
     algorithm: Algorithm = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
     fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE,
+    progress: _tt.Optional[ProgressController] = None,
 ) -> FileHashResult:
     """
     Calculate the cryptographic hash of a file with comprehensive metadata.
@@ -298,4 +310,6 @@ def fileHash(
         The returned FileHashResult can be used with caching systems to avoid
         recalculating hashes for unchanged files.
     """
-    return multipleFileHash(file, (algorithm,), chunkSize, fileIOMinSize)[algorithm]
+    return multipleFileHash(
+        file, (algorithm,), chunkSize, fileIOMinSize, progress=progress
+    )[algorithm]

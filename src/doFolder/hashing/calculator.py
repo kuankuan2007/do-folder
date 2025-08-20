@@ -28,6 +28,10 @@ from .util import (
 )
 
 from . import calculate, cache
+from .executor import (
+    ThreadPoolExecutorWithProgress,
+    ProgressController,
+)
 
 
 @dataclass
@@ -113,7 +117,9 @@ class FileHashCalculator:
     chunkSize: int = DEFAULT_CHUNK_SIZE
     fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE
     algorithm: str = DEFAULT_HASH_ALGORITHM
-    cacheManager: cache.FileHashCacheManagerBase = field(default=cache.DefaultNoneFileHashManager)
+    cacheManager: cache.FileHashCacheManagerBase = field(
+        default=cache.DefaultNoneFileHashManager
+    )
 
     def __post_init__(self):
         """Initialize cache manager if not provided."""
@@ -164,7 +170,9 @@ class FileHashCalculator:
         _algorithms = normalizeAlgorithms(algorithms)
         cacheResults = tuple(self.findCache(file, i) for i in _algorithms)
         if all(cacheResults):
-            return dict(zip(_algorithms, _tt.cast(_tt.Tuple[FileHashResult], cacheResults)))
+            return dict(
+                zip(_algorithms, _tt.cast(_tt.Tuple[FileHashResult], cacheResults))
+            )
         return self.multipleCalc(file, algorithms)
 
     def findCache(
@@ -238,7 +246,10 @@ class FileHashCalculator:
         raise ValueError("Invalid reCalcHashMode")
 
     def calc(
-        self, file: "_fs.File", algorithm: _tt.Optional[str] = None
+        self,
+        file: "_fs.File",
+        algorithm: _tt.Optional[str] = None,
+        progress: _tt.Optional[ProgressController] = None,
     ) -> FileHashResult:
         """
         Calculate the hash of a file and optionally cache the result.
@@ -258,10 +269,13 @@ class FileHashCalculator:
         """
 
         _algorithm = algorithm or self.algorithm
-        return self.multipleCalc(file, (_algorithm,))[_algorithm]
+        return self.multipleCalc(file, (_algorithm,), progress)[_algorithm]
 
     def multipleCalc(
-        self, file: "_fs.File", algorithms: Algorithms
+        self,
+        file: "_fs.File",
+        algorithms: Algorithms,
+        progress: _tt.Optional[ProgressController] = None,
     ) -> MultipleHashResult:
         """
         Calculate multiple hashes for a file and cache all results.
@@ -281,6 +295,7 @@ class FileHashCalculator:
             algorithms=algorithms,
             chunkSize=self.chunkSize,
             fileIOMinSize=self.fileIOMinSize,
+            progress=progress,
         )
         for i in res.values():
             self.cacheManager.set(file, i)
@@ -403,7 +418,7 @@ class ThreadedFileHashCalculator(FileHashCalculator):
         # Initialize cache manager from parent class
         super().__post_init__()
         # Initialize thread pool
-        self.threadPool = ThreadPoolExecutor(max_workers=self.threadNum)
+        self.threadPool = ThreadPoolExecutorWithProgress(max_workers=self.threadNum)
 
     def __enter__(self) -> "ThreadedFileHashCalculator":
         """
