@@ -62,10 +62,11 @@ def _calc(
     """
     hashObjs = tuple(hashlib.new(i) for i in algorithm)
     for chunk in content:
+        if progress is not None:
+            progress.updateProgress(add=len(chunk))
         for hashObj in hashObjs:
             hashObj.update(chunk)
-        if progress:
-            progress.updateProgress(add=len(chunk))
+
     return {i: hashObj.hexdigest() for i, hashObj in zip(algorithm, hashObjs)}
 
 

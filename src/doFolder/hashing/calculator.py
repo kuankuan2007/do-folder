@@ -9,8 +9,6 @@ parallel processing for efficient batch file hashing operations.
 """
 
 from dataclasses import dataclass, field
-from concurrent.futures import ThreadPoolExecutor, Future
-
 
 from .util import (
     FileHashResult,
@@ -31,6 +29,7 @@ from . import calculate, cache
 from .executor import (
     ThreadPoolExecutorWithProgress,
     ProgressController,
+    FutureWithProgress
 )
 
 
@@ -417,7 +416,7 @@ class ThreadedFileHashCalculator(FileHashCalculator):
     """
 
     threadNum: int = DEFAULT_THREAD_NUM
-    threadPool: ThreadPoolExecutor = field(init=False)
+    threadPool: ThreadPoolExecutorWithProgress = field(init=False)
 
     def __post_init__(self):
         """
@@ -483,7 +482,7 @@ class ThreadedFileHashCalculator(FileHashCalculator):
 
     def threadedGet(
         self, file: "_fs.File", algorithm: _tt.Optional[Algorithm] = None
-    ) -> "Future[FileHashResult]":
+    ) -> "FutureWithProgress[FileHashResult]":
         """
         Get the hash of a file using background thread processing.
 
@@ -523,14 +522,14 @@ class ThreadedFileHashCalculator(FileHashCalculator):
         algorithm = algorithm or self.algorithm
         cacheResult = self.findCache(file)
         if cacheResult is not None:
-            res = Future()
+            res = FutureWithProgress()
             res.set_result(cacheResult)
             return res
         return self.threadPool.submit(self.calc, file, algorithm)
 
     def threadedMultipleGet(
         self, file: "_fs.File", algorithms: Algorithms
-    ) -> "Future[MultipleHashResult]":
+    ) -> "FutureWithProgress[MultipleHashResult]":
         """
         Get multiple hash results for a file using background thread processing.
 
@@ -554,7 +553,7 @@ class ThreadedFileHashCalculator(FileHashCalculator):
         _algorithms = normalizeAlgorithms(algorithms)
         cacheResults = tuple(self.findCache(file, i) for i in _algorithms)
         if all(cacheResults):
-            res = Future()
+            res = FutureWithProgress()
             res.set_result(dict(zip(_algorithms, cacheResults)))
             return res
         return self.threadPool.submit(self.multipleCalc, file, _algorithms)

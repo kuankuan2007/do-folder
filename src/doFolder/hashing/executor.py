@@ -110,7 +110,10 @@ class ProgressController:
         return target.addProgressListener(_sync)
 
 
-class FutureWithProgress(Future, ProgressController):
+_T = _tt.TypeVar("_T")
+
+
+class FutureWithProgress(_tt.Generic[_T], Future[_T], ProgressController):
     """
     A Future that can report progress.
 
@@ -124,7 +127,6 @@ class FutureWithProgress(Future, ProgressController):
         ProgressController.__init__(self)
 
 
-_T = _tt.TypeVar("_T")
 _P = _tt.TypeVar("_P", bound=Future)
 
 
@@ -170,7 +172,7 @@ class ThreadPoolExecutorWithProgress(ThreadPoolExecutor):
     and returns a FutureWithProgress that can report progress updates.
     """
 
-    def submit(self, fn, /, *args, **kwargs):
+    def submit(self, fn, /, *args, **kwargs) -> FutureWithProgress:
         """
         Submit a callable to be executed with the given arguments.
 

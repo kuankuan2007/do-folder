@@ -46,6 +46,7 @@ from typing_extensions import (
     Generator,
     TypedDict,
     TYPE_CHECKING,
+    Generic,
 )
 
 # Import custom enums used in type definitions
