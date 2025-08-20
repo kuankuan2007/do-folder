@@ -11,7 +11,7 @@ from . import globalType as _tt
 
 def relativePathableFormat(
     path: _tt.RelativePathable, relativeTo: Path
-) -> _tt.Tuple[str, ...]:
+) -> tuple[str, ...]:
     """
     Converts a given path into a tuple representation relative to a base path.
 

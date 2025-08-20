@@ -377,7 +377,7 @@ class MemoryFileHashManager(FileHashCacheManagerBase):
 
     .. versionadded:: 2.2.4
     """
-    _cache: _tt.Dict[str, FileHashResult]
+    _cache: dict[str, FileHashResult]
 
     def __init__(self):
         self._cache = {}
