@@ -1,12 +1,9 @@
 from dataclasses import dataclass
 import _cwd
-
-
 @dataclass
 class VersionInfo:
-    version: str
-    pkgName: str
-
+    version:str
+    pkgName:str
 
 def getInfo():
     import importlib

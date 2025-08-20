@@ -50,7 +50,7 @@ class Difference:
     path2: _tt.Path
     diffType: DifferenceType
 
-    def toFlat(self) -> "_tt.Tuple[Difference,...]":
+    def toFlat(self) -> "tuple[Difference,...]":
         """Converts the difference structure to a flat tuple representation.
         
         This method provides a uniform interface for flattening difference hierarchies,
@@ -58,7 +58,7 @@ class Difference:
         difference trees. For basic Difference objects, returns a single-element tuple.
         
         Returns:
-            _tt.Tuple[Difference,...]: A tuple containing this difference instance.
+            tuple[Difference,...]: A tuple containing this difference instance.
         """
         return (self,)
 
@@ -74,9 +74,9 @@ class DirectoryDifference(Difference):
     subdirectories, enabling comprehensive directory tree analysis and reporting.
     """
 
-    sub: _tt.Tuple["Difference", ...] = field(default_factory=tuple)
+    sub: tuple["Difference", ...] = field(default_factory=tuple)
 
-    def toFlat(self) -> "_tt.Tuple[Difference,...]":
+    def toFlat(self) -> "tuple[Difference,...]":
         """Recursively flattens the directory difference hierarchy into a linear tuple.
         
         This method traverses the entire sub-difference tree and converts it into a flat
@@ -85,7 +85,7 @@ class DirectoryDifference(Difference):
         in depth-first order.
         
         Returns:
-            _tt.Tuple[Difference,...]: A flattened tuple containing this difference and all sub-differences.
+            tuple[Difference,...]: A flattened tuple containing this difference and all sub-differences.
         """
         res=(self, )
         for i in self.sub:
@@ -130,7 +130,7 @@ def _compareFileContent(
 
 # Mapping of comparison flags to their corresponding comparison functions
 # Enables efficient dispatch of comparison operations based on selected criteria
-_COMPARE_MODE: _tt.Dict[CompareModeFlag, _tt.Callable[[File, File], bool]] = {
+_COMPARE_MODE: dict[CompareModeFlag, _tt.Callable[[File, File], bool]] = {
     CompareModeFlag.CONTENT: _compareFileContent,
     CompareModeFlag.SIZE: lambda item1, item2: (
         item1.state.st_size == item2.state.st_size
@@ -300,7 +300,7 @@ def _getDifference(
         subItems1 = tuple(i.name for i in item1.iterdir())
         subItems2 = tuple(i.name for i in item2.iterdir())
         totalItem = set(subItems1 + subItems2)
-        sub: _tt.List[Difference] = []
+        sub: list[Difference] = []
         for now in totalItem:
             if now not in subItems1 or now not in subItems2:
                 sub.append(

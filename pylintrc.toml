@@ -43,15 +43,13 @@ ignore = [
     "simpleTest.py",
     "doc",
     'tools',
-    'venv',
-    '.venv',
 ]
 
 # Add files or directories matching the regular expressions patterns to the
 # ignore-list. The regex matches against paths and can be in Posix or Windows
 # format. Because '\\' represents the directory delimiter on Windows systems, it
 # can't be used as an escape character.
-# ignore-paths =
+ignore-paths = ["^venv.*$"]
 
 # Files or directories matching the regular expression patterns are skipped. The
 # regex matches against base names, not paths. The default value ignores Emacs
@@ -176,7 +174,10 @@ function-naming-style = "camelCase"
 # function-rgx =
 
 # Good variable names which should always be accepted, separated by a comma.
-good-names = ["i", "j", "k", "ex", "Run", "_", "__pkginfo__"]
+# The name __main__ was added here to avoid the invalid-name warning for the __main__ module.
+# I have submitted this false positive in issue #10442 (https://github.com/pylint-dev/pylint/issues/10442)
+# This was a reluctant move before it was fixed.
+good-names = ["i", "j", "k", "ex", "Run", "_", "__main__", '__pkginfo__']
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted

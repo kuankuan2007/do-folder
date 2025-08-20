@@ -87,7 +87,7 @@ from .path import Path  # Extended Path class with additional utilities
 from . import compare  # Comprehensive comparison utilities
 
 # Package metadata
-from .__pkginfo__ import __version__  # Package version information
+from .__pkginfo__ import __version__, __pkgname__  # Package version information
 
 
 __all__ = [
