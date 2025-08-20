@@ -43,7 +43,7 @@ class ProgressController:
     def updateProgress(
         self,
         progress: _tt.Optional[int] = None,
-        /,
+        *,
         total: _tt.Optional[int] = None,
         add: _tt.Optional[int] = None,
     ):
