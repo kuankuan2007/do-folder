@@ -260,6 +260,13 @@ class FileHashCalculator:
 
         Args:
             file (File): The file to calculate the hash for.
+            algorithm (str, optional): Hash algorithm to use. If None, uses the 
+                calculator's default algorithm.
+            progress (ProgressController, optional): Progress controller for tracking
+                calculation progress. Can be used to monitor progress or cancel
+                the operation. 
+                
+                .. versionadded:: 2.2.6
 
         Returns:
             FileHashResult: Complete hash result with metadata.
@@ -286,6 +293,11 @@ class FileHashCalculator:
         Args:
             file (File): The file to calculate hashes for.
             algorithms (Union[str, Iterable[str]]): Algorithm(s) to compute hashes for.
+            progress (ProgressController, optional): Progress controller for tracking
+                calculation progress. Can be used to monitor progress or cancel
+                the operation.
+                
+                .. versionadded:: 2.2.6
 
         Returns:
             Dict[str, FileHashResult]: Mapping of algorithm names to hash results.

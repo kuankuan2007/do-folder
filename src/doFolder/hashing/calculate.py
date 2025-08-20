@@ -41,14 +41,19 @@ def _calc(
     Args:
         content (Iterable[bytes]): An iterable yielding byte chunks to hash.
             Each chunk should be a bytes object.
-        algorithm (str, optional): Hash algorithm name supported by hashlib
-            (e.g., 'sha256', 'md5', 'sha1', 'sha512'). Defaults to 'sha256'.
+        algorithm (Iterable[str]): Hash algorithm names supported by hashlib
+            (e.g., 'sha256', 'md5', 'sha1', 'sha512').
+        progress (ProgressController, optional): Progress controller for tracking
+            calculation progress. Updates progress based on bytes processed.
+            
+            .. versionadded:: 2.2.6
 
     Returns:
-        str: The calculated hash as a lowercase hexadecimal string.
+        Dict[str, str]: Mapping of algorithm names to calculated hashes as 
+            lowercase hexadecimal strings.
 
     Raises:
-        ValueError: If the specified algorithm is not supported by hashlib.
+        ValueError: If any specified algorithm is not supported by hashlib.
 
     Note:
         This feature is specifically designed for internal use.
@@ -114,25 +119,31 @@ def calc(
         content (Union[BinaryIO, bytes]): The content to hash. Can be:
             - bytes, bytearray, or memoryview objects
             - Any file-like object with a read() method (e.g., open files, BytesIO)
-        algorithm (str, optional): Hash algorithm name. Must be supported by hashlib.
-            Common options: 'sha256', 'sha1', 'md5', 'sha512'. Defaults to 'sha256'.
+        algorithm (Union[str, Iterable[str]], optional): Hash algorithm name(s). 
+            Must be supported by hashlib. Common options: 'sha256', 'sha1', 'md5', 
+            'sha512'. Defaults to 'sha256'.
         chunkSize (int, optional): Size of chunks when reading from file-like objects.
             Larger chunks may be more efficient for large files but use more memory.
             Defaults to 16KB.
+        progress (ProgressController, optional): Progress controller for tracking
+            calculation progress. Updates progress based on bytes processed.
+            
+            .. versionadded:: 2.2.6
 
     Returns:
-        str: The calculated hash as a lowercase hexadecimal string.
+        Dict[str, str]: Mapping of algorithm names to calculated hashes as 
+            lowercase hexadecimal strings.
 
     Raises:
-        ValueError: If the specified hash algorithm is not supported.
+        ValueError: If any specified hash algorithm is not supported.
         IOError: If reading from a file-like object fails.
 
     Example:
         >>> calc(b"hello world")
-        'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'
+        {'sha256': 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'}
 
         >>> with open("file.txt", "rb") as f:
-        ...     hash_value = calc(f, algorithm="md5")
+        ...     hash_values = calc(f, algorithm=["sha256", "md5"])
     """
     return _calc(
         _toIterable(content, chunkSize), normalizeAlgorithms(algorithm), progress
@@ -203,10 +214,15 @@ def multipleFileHash(
         fileIOMinSize (int, optional): File size threshold for I/O optimization.
             Files larger than this use streaming I/O, smaller ones are read
             entirely into memory. Defaults to 64KB.
+        progress (ProgressController, optional): Progress controller for tracking
+            calculation progress. Updates progress based on bytes processed.
+            Allows monitoring progress and potentially canceling the operation.
+            
+            .. versionadded:: 2.2.6
 
     Returns:
-        Iterable[FileHashResult]: An iterable yielding FileHashResult objects,
-            one for each specified algorithm. Each result contains:
+        Dict[str, FileHashResult]: A mapping of algorithm names to FileHashResult 
+            objects. Each result contains:
             - hash: The calculated hash as hexadecimal string
             - algorithm: The specific algorithm used for this result
             - path: The file's path
@@ -222,17 +238,17 @@ def multipleFileHash(
         Calculate multiple hashes for a single file::
 
             # Single algorithm (equivalent to fileHash)
-            results = list(multipleFileHash(file, "sha256"))
-            sha256_result = results[0]
+            results = multipleFileHash(file, "sha256")
+            sha256_result = results["sha256"]
 
             # Multiple algorithms in one pass
-            results = list(multipleFileHash(file, ["sha256", "md5", "sha1"]))
-            for result in results:
-                print(f"{result.algorithm}: {result.hash}")
+            results = multipleFileHash(file, ["sha256", "md5", "sha1"])
+            for algorithm, result in results.items():
+                print(f"{algorithm}: {result.hash}")
 
             # Using with different algorithms
             algorithms = ["sha256", "blake2b", "sha512"]
-            results = {r.algorithm: r.hash for r in multipleFileHash(file, algorithms)}
+            results = multipleFileHash(file, algorithms)
 
     Performance Notes:
         - More efficient than multiple calls to fileHash() for the same file
@@ -244,7 +260,7 @@ def multipleFileHash(
     Note:
         While this function accepts a single algorithm string for compatibility,
         if you only need one hash, consider using fileHash() instead as it returns
-        a single FileHashResult rather than an iterable.
+        a single FileHashResult rather than a dictionary.
     """
     calcTime = time.time()
     if progress is not None:
@@ -290,6 +306,11 @@ def fileHash(
         fileIOMinSize (int, optional): File size threshold for I/O optimization.
             Files larger than this use streaming I/O, smaller ones are read
             entirely into memory. Defaults to 64KB.
+        progress (ProgressController, optional): Progress controller for tracking
+            calculation progress. Updates progress based on bytes processed.
+            Allows monitoring progress and potentially canceling the operation.
+            
+            .. versionadded:: 2.2.6
 
     Returns:
         FileHashResult: A complete result object containing:
