@@ -44,6 +44,7 @@ from typing_extensions import (
     Generator,
     TypedDict,
     TYPE_CHECKING,
+    Generic,
     Type,
 )
 

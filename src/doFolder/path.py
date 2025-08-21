@@ -29,7 +29,7 @@ def relativePathableFormat(
             This must be an absolute path if the input path is absolute.
 
     Returns:
-        _tt.Tuple[str, ...]: A tuple of strings representing the relative path components.
+        tuple[str, ...]: A tuple of strings representing the relative path components.
 
     Raises:
         ValueError: If the input path is invalid, empty, or cannot be made relative 
