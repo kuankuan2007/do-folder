@@ -33,7 +33,7 @@ console.no_color = True
 console.legacy_windows = True
 
 
-def compareCli(arguments: _tt.Sequence[str] | None = None) -> int:
+def compareCli(arguments: _tt.Optional[_tt.Sequence[str]] = None) -> int:
     """
     The implementation of the command-line tool `do-compare`
     You can also use it as `do-folder compare` or `python3 -m doFolder compare`.
@@ -247,9 +247,10 @@ def _compareCli(
             console.print(
                 f"[red bold]Error:[/red bold] [yellow]{excType.__name__}[/yellow]\n{excValue}",
             )
-            if hasattr(excValue, "__notes__") and excValue.__notes__:
+            notes=_ex.getNote(excValue)
+            if notes:
                 console.print("\n")
-                for note in excValue.__notes__:
+                for note in notes:
                     console.print(f"[green bold]Note:[/bold green] {note}")
 
     try:
@@ -280,7 +281,7 @@ def _compareCli(
                 e = _ex.PathTypeError(
                     f"Directory '{notExistsPath}' does not exist, but the other path '{existsPath}' is a directory."
                 )
-                e.add_note("To create it automatically, use -c(--create-root) option.")
+                _ex.addNote(e,"To create it automatically, use -c(--create-root) option.")
                 raise e
             isFile = pathA.is_file() if pathA.exists() else pathB.is_file()
             itemA = _fs.createItem(

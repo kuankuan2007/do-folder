@@ -21,7 +21,7 @@ PYTHON_EXECUTABLE = _sys.executable
 
 #: Whether the Global Interpreter Lock (GIL) is disabled in this Python build
 PYTHON_GIL_DISABLED = (
-    not _sys._is_gil_enabled()  # pylint: disable=protected-access
+    not _sys._is_gil_enabled()  # pylint: disable=protected-access # type: ignore
     if hasattr(_sys, "_is_gil_enabled")
     else False
 )
