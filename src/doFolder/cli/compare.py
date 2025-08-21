@@ -300,7 +300,7 @@ def _compareCli(
             _writeOutput("[green]No differences found.[/green]")
             return 0
 
-        diffPlans: _tt.Dict[int, DiffPlan] = {}
+        diffPlans: dict[int, DiffPlan] = {}
 
         tableColumns = [
             {"header": "Path"},
@@ -478,7 +478,7 @@ def _compareCli(
                     "[green]Is these sync plan all correct? [/green]",
                 )
                 if not editFlag:
-                    overwriteList: _tt.List[_fs.Path] = []
+                    overwriteList: list[_fs.Path] = []
                     for i in diffList:
                         if diffPlans[id(i)] == DiffPlan.A2B_OVERWRITE:
                             overwriteList.append(i.path2)
@@ -529,9 +529,9 @@ def _compareCli(
                             else resPlan
                         ),
                     )
-        ignoreRes: _tt.List[_compare.Difference] = []
-        syncRes: _tt.List[_compare.Difference] = []
-        overwriteRes: _tt.List[_compare.Difference] = []
+        ignoreRes: list[_compare.Difference] = []
+        syncRes: list[_compare.Difference] = []
+        overwriteRes: list[_compare.Difference] = []
 
         def _syncPath(
             fr: _fs.Path, to: _fs.Path, overwrite: bool, diff: _compare.Difference

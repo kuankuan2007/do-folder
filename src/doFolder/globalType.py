@@ -24,10 +24,6 @@ import abc
 from types import TracebackType
 
 from typing_extensions import (
-    List,
-    Dict,
-    Tuple,
-    Set,
     Optional,
     Iterator,
     Iterable,

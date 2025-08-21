@@ -15,7 +15,7 @@ def cmpPath(path1: _tt.Path, path2: _tt.Path):
     return cmpPathParts(path1.parts, path2.parts)
 
 
-def cmpPathParts(path1: _tt.Tuple[str, ...], path2: _tt.Tuple[str, ...]):
+def cmpPathParts(path1: tuple[str, ...], path2: tuple[str, ...]):
     """Compares two path parts."""
     for i in range(min(len(path1), len(path2))):
         if not (i == len(path1) - 1) ^ (i == len(path2) - 1):
