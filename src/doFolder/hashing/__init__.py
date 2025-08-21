@@ -21,7 +21,7 @@ from .cache import (
     NullFileHashManager,
     LfuMemoryFileHashManager,
 )
-from .calculate import calc, multipleFileHash, fileHash
+from .calculate import calc, multipleFileHash, fileHash, unsupport
 from .calculator import FileHashCalculator, ThreadedFileHashCalculator
 from .util import (
     FileHashResult,
@@ -46,6 +46,7 @@ __all__ = [
     "calc",
     "fileHash",
     "multipleFileHash",
+    "unsupport",
     # Calculator classes
     "FileHashCalculator",
     "ThreadedFileHashCalculator",

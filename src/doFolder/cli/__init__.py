@@ -12,3 +12,10 @@ Available CLI Functions:
 
 from .compare import compareCli
 from .main import mainCli
+from .hash import hashCli
+
+__all__ = [
+    "compareCli",
+    "mainCli",
+    "hashCli",
+]

@@ -25,6 +25,8 @@ from .util import (
 )
 from .executor import ProgressController
 
+def unsupport(algorithms: _tt.Iterable[Algorithm]):
+    return tuple(i for i in algorithms if i not in hashlib.algorithms_available)
 
 def _calc(
     content: _tt.Iterable[bytes],

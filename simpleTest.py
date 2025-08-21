@@ -1,3 +1,3 @@
-from src.doFolder import __main__
+from src.doFolder.cli import hashCli
 
-# scripts.doCompare()
+hashCli()
