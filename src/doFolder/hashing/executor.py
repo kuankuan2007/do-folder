@@ -22,8 +22,8 @@ class ProgressController:
     progress controllers.
 
     Attributes:
-        __progress (int): Current progress value.
-        __total (int): Total value for the operation.
+        _progress (int): Current progress value.
+        _total (int): Total value for the operation.
         _listener (List[ProgressListener]): List of registered progress listeners.
     """
 

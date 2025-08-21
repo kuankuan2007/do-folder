@@ -30,3 +30,38 @@ from .util import (
     normalizeAlgorithms,
     ReCalcHashMode,
 )
+
+__all__ = [
+    # Cache managers
+    "FileHashCacheManagerBase",
+    "MemoryFileHashManager", 
+    "NullFileHashManager",
+    "LfuMemoryFileHashManager",
+    
+    # Core calculation functions
+    "calc",
+    "fileHash",
+    "multipleFileHash",
+    
+    # Calculator classes
+    "FileHashCalculator",
+    "ThreadedFileHashCalculator",
+    
+    # Data types and results
+    "FileHashResult",
+    "MultipleHashResult",
+    "Algorithm",
+    "Algorithms",
+    
+    # Configuration constants
+    "DEFAULT_CHUNK_SIZE",
+    "DEFAULT_FILE_IO_MIN_SIZE",
+    "DEFAULT_HASH_ALGORITHM",
+    "DEFAULT_THREAD_NUM",
+    
+    # Utility functions
+    "normalizeAlgorithms",
+    
+    # Enums
+    "ReCalcHashMode",
+]
