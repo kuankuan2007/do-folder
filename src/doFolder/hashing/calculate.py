@@ -4,7 +4,7 @@ Core cryptographic hash calculation functions for files and byte content.
 This module provides the fundamental hash calculation functionality with support
 for multiple algorithms, chunked processing, and both memory and streaming I/O modes.
 
-.. versionadded:: 2.2.6
+.. versionadded:: 2.3.0
 """
 
 import hashlib
@@ -30,7 +30,7 @@ def _calc(
     content: _tt.Iterable[bytes],
     algorithm: _Algorithms,
     progress: _tt.Optional[ProgressController] = None,
-) -> _tt.Dict[Algorithm, str]:
+) -> dict[Algorithm, str]:
     """
     Internal function to calculate hash from an iterable of byte chunks.
 
@@ -45,11 +45,11 @@ def _calc(
             (e.g., 'sha256', 'md5', 'sha1', 'sha512').
         progress (ProgressController, optional): Progress controller for tracking
             calculation progress. Updates progress based on bytes processed.
-            
-            .. versionadded:: 2.2.6
+
+            .. versionadded:: 2.3.0
 
     Returns:
-        Dict[str, str]: Mapping of algorithm names to calculated hashes as 
+        Dict[str, str]: Mapping of algorithm names to calculated hashes as
             lowercase hexadecimal strings.
 
     Raises:
@@ -60,6 +60,7 @@ def _calc(
         It gradually processes the content to ensure that the memory usage remains
             within a reasonable range regardless of how the total amount of content changes
     """
+
     hashObjs = tuple(hashlib.new(i) for i in algorithm)
     for chunk in content:
         if progress is not None:
@@ -108,7 +109,7 @@ def calc(
     algorithm: Algorithms = DEFAULT_HASH_ALGORITHM,
     chunkSize: int = DEFAULT_CHUNK_SIZE,
     progress: _tt.Optional[ProgressController] = None,
-) -> _tt.Dict[str, str]:
+) -> dict[str, str]:
     """
     Calculate the hash of arbitrary content (bytes or file-like object).
 
@@ -120,19 +121,19 @@ def calc(
         content (Union[BinaryIO, bytes]): The content to hash. Can be:
             - bytes, bytearray, or memoryview objects
             - Any file-like object with a read() method (e.g., open files, BytesIO)
-        algorithm (Union[str, Iterable[str]], optional): Hash algorithm name(s). 
-            Must be supported by hashlib. Common options: 'sha256', 'sha1', 'md5', 
+        algorithm (Union[str, Iterable[str]], optional): Hash algorithm name(s).
+            Must be supported by hashlib. Common options: 'sha256', 'sha1', 'md5',
             'sha512'. Defaults to 'sha256'.
         chunkSize (int, optional): Size of chunks when reading from file-like objects.
             Larger chunks may be more efficient for large files but use more memory.
             Defaults to 16KB.
         progress (ProgressController, optional): Progress controller for tracking
             calculation progress. Updates progress based on bytes processed.
-            
-            .. versionadded:: 2.2.6
+
+            .. versionadded:: 2.3.0
 
     Returns:
-        Dict[str, str]: Mapping of algorithm names to calculated hashes as 
+        Dict[str, str]: Mapping of algorithm names to calculated hashes as
             lowercase hexadecimal strings.
 
     Raises:
@@ -218,11 +219,11 @@ def multipleFileHash(
         progress (ProgressController, optional): Progress controller for tracking
             calculation progress. Updates progress based on bytes processed.
             Allows monitoring progress and potentially canceling the operation.
-            
-            .. versionadded:: 2.2.6
+
+            .. versionadded:: 2.3.0
 
     Returns:
-        Dict[str, FileHashResult]: A mapping of algorithm names to FileHashResult 
+        Dict[str, FileHashResult]: A mapping of algorithm names to FileHashResult
             objects. Each result contains:
             - hash: The calculated hash as hexadecimal string
             - algorithm: The specific algorithm used for this result
@@ -265,7 +266,7 @@ def multipleFileHash(
     """
     calcTime = time.time()
     if progress is not None:
-        progress = ProgressController()
+        progress.updateProgress(total=file.state.st_size)
     res = calc(_fileContent(file, fileIOMinSize), algorithms, chunkSize, progress)
 
     return {
@@ -310,8 +311,8 @@ def fileHash(
         progress (ProgressController, optional): Progress controller for tracking
             calculation progress. Updates progress based on bytes processed.
             Allows monitoring progress and potentially canceling the operation.
-            
-            .. versionadded:: 2.2.6
+
+            .. versionadded:: 2.3.0
 
     Returns:
         FileHashResult: A complete result object containing:
@@ -333,5 +334,5 @@ def fileHash(
         recalculating hashes for unchanged files.
     """
     return multipleFileHash(
-        file, (algorithm,), chunkSize, fileIOMinSize, progress=progress
+        file, (algorithm,), chunkSize, fileIOMinSize, progress
     )[algorithm]

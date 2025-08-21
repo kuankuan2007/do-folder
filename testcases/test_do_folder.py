@@ -355,6 +355,7 @@ class TestFileSystem:
                 f"Recursive traversal with directories missing item: {expected_item.path} not found in results. "
                 f"Check if recursiveTraversal(hideDirectory=False) properly includes all files and directories."
             )
+
     def test_div_operators(self):
         """Test division operators for Directory objects"""
         path = root / "test_div_operators"
@@ -401,6 +402,7 @@ class TestFileSystem:
             f"but isFile() returned {created_file.isFile()}. Check file creation in directories "
             f"created through chained '//' operators."
         )
+
 
 class TestHashing:
     def test_hash(self):
@@ -504,9 +506,25 @@ class TestHashing:
                 1024 * 1024 * random.randint(1, 8)
             ).encode("utf-8")
 
+        bigFile = d.createFile("big")
+        with bigFile.open("w", encoding="utf-8") as f:
+            for i in range(16):
+                f.write(randomFileContent(1024 * 1024 * 8))
+
+        files.append(bigFile)
+        progressFlag = False
+        finishFlag=False
+        def onProgressbarChange(now,total,obj):
+            nonlocal progressFlag,finishFlag
+            if now!=total and now:
+                progressFlag=True
+            if now==total:
+                finishFlag=True
         # Test concurrent hash calculation
         with doFolder.hashing.ThreadedFileHashCalculator() as obj1:
             futures_list = [obj1.threadedGet(f) for f in files]
+
+            futures_list[-1].addProgressListener(onProgressbarChange)
 
             # Wait for all calculations to complete
             completed_futures = futures.wait(futures_list, timeout=60 * 10)
@@ -516,6 +534,9 @@ class TestHashing:
                 f"Threaded hash calculation timeout: only {len(completed_futures.done)} out of {len(futures_list)} "
                 f"hash calculations completed within timeout. Check ThreadedFileHashCalculator performance or increase timeout."
             )
+
+            assert progressFlag, "No progress callback"
+            assert finishFlag, "No finish callback"
 
             # Verify all results are valid FileHashResult objects
             for i, future in enumerate(futures_list):

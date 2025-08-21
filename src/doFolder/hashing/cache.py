@@ -4,7 +4,7 @@ File hash cache management systems for persistent and in-memory result storage.
 This module provides abstract and concrete implementations of cache managers that
 can store and retrieve FileHashResult objects to avoid redundant hash calculations.
 
-.. versionadded:: 2.2.6
+.. versionadded:: 2.3.0
 """
 
 from collections import OrderedDict as _OrderedDict
@@ -117,13 +117,13 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
         """
 
     @_tt.overload
-    def getKey(self, target: "_fs.File", algorithm: str) -> _tt.Tuple[str, str]: ...
+    def getKey(self, target: "_fs.File", algorithm: str) -> tuple[str, str]: ...
 
     @_tt.overload
-    def getKey(self, target: "_fs.Path", algorithm: str) -> _tt.Tuple[str, str]: ...
+    def getKey(self, target: "_fs.Path", algorithm: str) -> tuple[str, str]: ...
 
     @_tt.overload
-    def getKey(self, target: FileHashResult) -> _tt.Tuple[str, str]: ...
+    def getKey(self, target: FileHashResult) -> tuple[str, str]: ...
 
     def getKey(self, target, algorithm=None):
         """
@@ -162,7 +162,7 @@ class FileHashCacheManagerBase(_tt.abc.ABC):
         assert algorithm, "algorithm is required when target is not FileHashResult"
 
         if isinstance(target, _fs.Path):
-            return str(target)
+            return str(target), algorithm
         return str(target.path), algorithm
 
 
@@ -184,12 +184,12 @@ class MemoryFileHashManager(FileHashCacheManagerBase):
     .. versionadded:: 2.2.4
     """
 
-    _cache: _tt.Dict[_tt.Tuple[str, str], FileHashResult]
+    _cache: dict[tuple[str, str], FileHashResult]
 
     def __init__(self):
         self._cache = {}
 
-    def get(self, file: "_fs.File", algorithm=str):
+    def get(self, file: "_fs.File", algorithm: str):
         return self._cache.get(self.getKey(file, algorithm))
 
     def set(self, file: "_fs.File", result: FileHashResult):
@@ -215,7 +215,7 @@ class NullFileHashManager(FileHashCacheManagerBase):
     .. versionadded:: 2.2.4
     """
 
-    def get(self, file: "_fs.File", algorithm=str):
+    def get(self, file: "_fs.File", algorithm: str):
         return None
 
     def set(self, file: "_fs.File", result: FileHashResult):
@@ -243,20 +243,21 @@ class LfuMemoryFileHashManager(FileHashCacheManagerBase):
             When exceeded, least recently used entries are evicted.
 
     Note:
-        Despite the class name suggesting LFU (Least Frequently Used), this
-        implementation actually uses LRU (Least Recently Used) eviction policy.
+        Despite the class name "LfuMemoryFileHashManager", this implementation actually 
+        uses LRU (Least Recently Used) eviction policy. The name is kept for backward 
+        compatibility but may be misleading - consider it as an LRU cache manager.
 
     .. versionadded:: 2.2.4
     """
 
-    _cache: "_OrderedDict[_tt.Tuple[str,str], FileHashResult]"
+    _cache: "_OrderedDict[tuple[str,str], FileHashResult]"
     maxSize: int
 
     def __init__(self, maxSize: int):
         self._cache = _OrderedDict()
         self.maxSize = maxSize
 
-    def get(self, file: "_fs.File", algorithm=str):
+    def get(self, file: "_fs.File", algorithm: str):
         key = self.getKey(file, algorithm)
         res = self._cache.get(key)
         if res:

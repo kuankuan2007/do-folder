@@ -22,15 +22,15 @@ class ProgressController:
     progress controllers.
 
     Attributes:
-        __progress (int): Current progress value.
-        __total (int): Total value for the operation.
+        _progress (int): Current progress value.
+        _total (int): Total value for the operation.
         _listener (List[ProgressListener]): List of registered progress listeners.
     """
 
     _progress: int = 0
     _total: int = 100
 
-    _listener: _tt.List[ProgressListener]
+    _listener: list[ProgressListener]
 
     def __init__(self):
         """
@@ -43,8 +43,9 @@ class ProgressController:
     def updateProgress(
         self,
         progress: _tt.Optional[int] = None,
-        add: _tt.Optional[int] = None,
+        *,
         total: _tt.Optional[int] = None,
+        add: _tt.Optional[int] = None,
     ):
         """
         Update the progress value and optionally the total.
@@ -52,8 +53,9 @@ class ProgressController:
         Notifies all registered listeners after updating the values.
 
         Args:
-            progress (int): The new progress value.
-            total (Optional[int]): The new total value. If None, keeps current total.
+            progress (int, optional): The new progress value.
+            total (int, optional): The new total value. If None, keeps current total.
+            add (int, optional): The amount to add to the current progress. If None, keeps current progress.
         """
         if add is not None:
             progress = self._progress + add
@@ -88,6 +90,7 @@ class ProgressController:
         """
 
         self._callListener(listener)
+        self._listener.append(listener)
         return lambda: self._listener.remove(listener)
 
     def syncFrom(self, target: "ProgressController"):
@@ -105,7 +108,7 @@ class ProgressController:
         """
 
         def _sync(progress: int, total: int, _future: "ProgressController"):
-            self.updateProgress(progress, total)
+            self.updateProgress(progress,total= total)
 
         return target.addProgressListener(_sync)
 
@@ -113,7 +116,7 @@ class ProgressController:
 _T = _tt.TypeVar("_T")
 
 
-class FutureWithProgress(_tt.Generic[_T], Future[_T], ProgressController):
+class FutureWithProgress(Future[_T], ProgressController):
     """
     A Future that can report progress.
 
@@ -125,6 +128,11 @@ class FutureWithProgress(_tt.Generic[_T], Future[_T], ProgressController):
     def __init__(self):
         super().__init__()
         ProgressController.__init__(self)
+        self.add_done_callback(self._futureStateSync)
+
+    def _futureStateSync(self, target: Future):
+        if target.done():
+            self.updateProgress(progress=self._total)
 
 
 _P = _tt.TypeVar("_P", bound=Future)
