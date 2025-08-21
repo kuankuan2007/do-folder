@@ -4,7 +4,7 @@ File hash cache management systems for persistent and in-memory result storage.
 This module provides abstract and concrete implementations of cache managers that
 can store and retrieve FileHashResult objects to avoid redundant hash calculations.
 
-.. versionadded:: 2.2.6
+.. versionadded:: 2.3.0
 """
 
 from collections import OrderedDict as _OrderedDict

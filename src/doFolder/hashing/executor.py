@@ -53,8 +53,9 @@ class ProgressController:
         Notifies all registered listeners after updating the values.
 
         Args:
-            progress (int): The new progress value.
-            total (Optional[int]): The new total value. If None, keeps current total.
+            progress (int, optional): The new progress value.
+            total (int, optional): The new total value. If None, keeps current total.
+            add (int, optional): The amount to add to the current progress. If None, keeps current progress.
         """
         if add is not None:
             progress = self._progress + add

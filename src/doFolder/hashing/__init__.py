@@ -10,7 +10,7 @@ It provides the underlying support for the File.hash method.
 
 .. versionadded:: 2.2.3
 
-.. versionchanged:: 2.2.6
+.. versionchanged:: 2.3.0
     hashing is now a subpackage, instead of submodule.
 """
 

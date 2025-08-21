@@ -4,7 +4,7 @@ Core cryptographic hash calculation functions for files and byte content.
 This module provides the fundamental hash calculation functionality with support
 for multiple algorithms, chunked processing, and both memory and streaming I/O modes.
 
-.. versionadded:: 2.2.6
+.. versionadded:: 2.3.0
 """
 
 import hashlib
@@ -46,7 +46,7 @@ def _calc(
         progress (ProgressController, optional): Progress controller for tracking
             calculation progress. Updates progress based on bytes processed.
 
-            .. versionadded:: 2.2.6
+            .. versionadded:: 2.3.0
 
     Returns:
         Dict[str, str]: Mapping of algorithm names to calculated hashes as
@@ -130,7 +130,7 @@ def calc(
         progress (ProgressController, optional): Progress controller for tracking
             calculation progress. Updates progress based on bytes processed.
 
-            .. versionadded:: 2.2.6
+            .. versionadded:: 2.3.0
 
     Returns:
         Dict[str, str]: Mapping of algorithm names to calculated hashes as
@@ -220,7 +220,7 @@ def multipleFileHash(
             calculation progress. Updates progress based on bytes processed.
             Allows monitoring progress and potentially canceling the operation.
 
-            .. versionadded:: 2.2.6
+            .. versionadded:: 2.3.0
 
     Returns:
         Dict[str, FileHashResult]: A mapping of algorithm names to FileHashResult
@@ -312,7 +312,7 @@ def fileHash(
             calculation progress. Updates progress based on bytes processed.
             Allows monitoring progress and potentially canceling the operation.
 
-            .. versionadded:: 2.2.6
+            .. versionadded:: 2.3.0
 
     Returns:
         FileHashResult: A complete result object containing:

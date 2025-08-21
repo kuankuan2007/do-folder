@@ -5,7 +5,7 @@ This module provides FileHashCalculator and ThreadedFileHashCalculator classes
 that offer intelligent caching, configurable recalculation policies, and
 parallel processing for efficient batch file hashing operations.
 
-.. versionadded:: 2.2.6
+.. versionadded:: 2.3.0
 """
 
 from dataclasses import dataclass, field
@@ -265,7 +265,7 @@ class FileHashCalculator:
                 calculation progress. Can be used to monitor progress or cancel
                 the operation. 
                 
-                .. versionadded:: 2.2.6
+                .. versionadded:: 2.3.0
 
         Returns:
             FileHashResult: Complete hash result with metadata.
@@ -296,7 +296,7 @@ class FileHashCalculator:
                 calculation progress. Can be used to monitor progress or cancel
                 the operation.
                 
-                .. versionadded:: 2.2.6
+                .. versionadded:: 2.3.0
 
         Returns:
             Dict[str, FileHashResult]: Mapping of algorithm names to hash results.
