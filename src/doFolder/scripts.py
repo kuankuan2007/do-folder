@@ -9,7 +9,7 @@ import sys
 from .cli import compareCli, mainCli
 
 
-def callCli(cli):
+def _callCli(cli):
     """
     Execute a CLI function and exit with its return code.
     
@@ -29,7 +29,7 @@ def doCompare():
     This function serves as the entry point for the `do-compare` command,
     which allows users to compare two filesystem items (files or directories).
     """
-    callCli(compareCli)
+    _callCli(compareCli)
 
 
 def main():
@@ -39,4 +39,4 @@ def main():
     This is the primary entry point that handles all doFolder subcommands.
     It routes to the appropriate subcommand handler based on user input.
     """
-    callCli(mainCli)
+    _callCli(mainCli)
