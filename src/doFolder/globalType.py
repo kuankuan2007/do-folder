@@ -14,18 +14,16 @@ Uses typing_extensions for backward compatibility with older Python versions.
 """
 
 # pylint: disable=unused-import, no-name-in-module
-import abc
-import sys
 from pathlib import Path
+import abc
+
 
 # Import typing utilities from typing_extensions for better compatibility
 # across Python versions. typing_extensions provides backports of newer
 # typing features to older Python versions.
+from types import TracebackType
+
 from typing_extensions import (
-    List,
-    Dict,
-    Tuple,
-    Set,
     Optional,
     Iterator,
     Iterable,
@@ -46,16 +44,17 @@ from typing_extensions import (
     Generator,
     TypedDict,
     TYPE_CHECKING,
+    Type,
 )
 
 # Import custom enums used in type definitions
 from .enums import ErrorMode, UnExistsMode, ItemType, CompareModeFlag, CompareMode
-
+from . import env as _env
 
 # Handle version-specific imports for Callable
 # In Python 3.10+, Callable is available from collections.abc
 # For older versions, it must be imported from typing
-if sys.version_info >= (3, 10):
+if _env.PYTHON_VERSION_INFO >= (3, 10):
     from collections.abc import Callable
 else:
     from typing import Callable
