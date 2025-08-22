@@ -1,9 +1,21 @@
+import enum
+from concurrent.futures import CancelledError
+
 from . import util
 from .. import globalType as _tt, exception as _ex, fileSystem as _fs
 from .. import hashing as _hashing
 
 
 Algorithm = str
+FIELDS_INIT = {
+    "_now": "0B",
+    "_total": "N/A",
+    "_percent": "0.00%",
+    "_file": "",
+    "_speed": "N/A",
+    "_statue": "waiting",
+    "_remainTime": "N/A",
+}
 
 
 class AlgorithmFilesAction(util.argparse.Action):
@@ -76,6 +88,7 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
     parser.add_argument(
         "-p", "--to-absolute", action="store_true", help="Use absolute paths"
     )
+    parser.add_argument("-n", "--thread-num", type=int, default=4)
     util.addConsoleInfo(parser)
 
     args = parser.parse_args(arguments)
@@ -94,6 +107,7 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
         disableAggregateAlgos=args.disable_aggregate_algos,
         toAbsolute=args.to_absolute,
         controller=util.createControllerFromArgs(args),
+        threadNum=args.thread_num,
     )
 
 
@@ -155,6 +169,7 @@ def _checkPath(
                 else (i for i in item if _fs.isFile(i))
             )
         )
+    
     return res
 
 
@@ -162,6 +177,123 @@ def _checkAlgorithms(group: HashGroup):
     res = _hashing.unsupport(set(item for i, _ in group for item in i))
     if res:
         raise ValueError("Unsupported hash algorithm(s): " + ",".join(res))
+
+
+_taskIdGenerator = util.idGenerator()
+
+
+@util.dataclass
+class CalcTask:
+    feature: _hashing.FutureWithProgress[_hashing.MultipleHashResult]
+    result: _tt.Optional[_hashing.MultipleHashResult]
+    file: _fs.File
+    algorithms: set[str]
+    id: int = util.field(default_factory=_taskIdGenerator.__next__)
+
+    @property
+    def fields(self):
+        return {
+            "_now": util.SizeFormat(self.feature.progress),
+            "_total": util.SizeFormat(self.feature.total),
+            "_percent": f"{self.feature.percent:0.2f}%",
+            "_file": self.file.path,
+            "_speed": util.SizeSpeedFormat(self.feature.speed),
+            "_statue": self.feature.statue.value,
+            "_remainTime": util.TimeFormat(self.feature.remain),
+        }
+
+
+class ProgtrssShow(enum.Flag):
+    parts = enum.auto()
+    total = enum.auto()
+    all = enum.auto()
+
+
+class CalcProgress(util.rich.progress.Progress):
+    taskList: list[CalcTask]
+    taskMap: dict[int, util.rich.progress.TaskID]
+
+    def __init__(
+        self,
+        consoleController: util.ConsoleController,
+        auto_refresh: bool = True,
+        refresh_per_second: float = 3,
+        speed_estimate_period: float = 30,
+        transient: bool = False,
+        redirect_stdout: bool = True,
+        redirect_stderr: bool = True,
+        get_time: _tt.Callable[[], float] | None = None,
+        disable: bool = False,
+        expand: bool = False,
+    ) -> None:
+
+        super().__init__(
+            *[
+                util.rich.progress.TextColumn(
+                    "[progress.description]{task.description}",
+                ),
+                util.rich.progress.BarColumn(),
+                util.rich.progress.TextColumn("{task.fields[_now]}", justify="right"),
+                util.rich.progress.TextColumn("/"),
+                util.rich.progress.TextColumn("{task.fields[_total]}", justify="left"),
+                util.rich.progress.TextColumn(
+                    "{task.fields[_percent]}", style="blue", justify="right"
+                ),
+                util.rich.progress.TextColumn("{task.fields[_speed]}", style="green"),
+                util.rich.progress.TextColumn(
+                    "{task.fields[_remainTime]}", style="yellow"
+                ),
+                util.rich.progress.TextColumn("{task.fields[_statue]}"),
+            ],
+            console=consoleController.console,
+            auto_refresh=auto_refresh,
+            refresh_per_second=refresh_per_second,
+            speed_estimate_period=speed_estimate_period,
+            transient=transient,
+            redirect_stdout=redirect_stdout,
+            redirect_stderr=redirect_stderr,
+            get_time=get_time,
+            disable=disable,
+            expand=expand,
+        )
+
+        self.taskList = []
+        self.taskMap = {}
+
+    def traceTask(self, *args: CalcTask):
+        self.taskList.extend(args)
+
+    def getTaskId(self, task: CalcTask) -> util.rich.progress.TaskID:
+        if task.id not in self.taskMap:
+            self.taskMap[task.id] = self.add_task(
+                description=str(task.file.path),
+                completed=0,
+                start=False,
+                total=None,
+                visible=True,
+                **FIELDS_INIT,
+            )
+        return self.taskMap[task.id]
+
+    def updateTask(
+        self,
+        task: CalcTask,
+    ):
+        self.update(
+            self.getTaskId(task),
+            description=str(task.file.path),
+            completed=task.feature.progress,
+            advance=None,
+            refresh=False,
+            **task.fields,
+        )
+
+    def refreshCalcTask(self) -> None:
+
+        for i in self.taskList:
+            self.updateTask(i)
+
+        return self.refresh()
 
 
 def _hashCli(
@@ -172,15 +304,14 @@ def _hashCli(
     recursive: bool = False,
     disableAggregateAlgos: bool = True,
     toAbsolute: bool = False,
-) -> (
-    int
-):  # pylint: disable=too-many-arguments
+    threadNum: int = 4,
+) -> int:  # pylint: disable=too-many-arguments
 
     try:
 
         _checkAlgorithms(hashGroups)
-
         flatGroup = _flatHashGroup(hashGroups)
+
         if toAbsolute:
             flatGroup = _toAbsolute(flatGroup)
         if not disableAggregateAlgos:
@@ -192,7 +323,55 @@ def _hashCli(
             allowDirectory=allowDirectory,
             recursive=recursive,
         )
-        print(finalGroup)
+
+        with CalcProgress(
+            consoleController=controller
+        ) as progress, _hashing.ThreadedFileHashCalculator(
+            threadNum=threadNum
+        ) as calculator:
+            calcTasks = [
+                CalcTask(
+                    feature=calculator.threadedMultipleGet(file, algorithms),
+                    result=None,
+                    file=file,
+                    algorithms=algorithms,
+                )
+                for file, algorithms in finalGroup
+            ]
+            progress.traceTask(*calcTasks)
+            while True:
+                flag = True
+                for i in calcTasks:
+
+                    flag = flag and i.feature.done()
+                progress.refreshCalcTask()
+                if flag:
+                    break
+
+        for i in calcTasks:
+            try:
+                res = i.feature.result()
+                controller.console.print(
+                    f"\n{i.file.path}", style="bold green", markup=False
+                )
+                for algo, res in res.items():
+                    controller.console.print(
+                        util.rich.text.Text(f"{algo}", style="bold blue"),
+                        util.rich.text.Text(f" {res.hash}"),
+                        markup=False,
+                    )
+
+            except CancelledError:
+                controller.console.print(
+                    f"Task {i.file.path} was cancelled.",
+                    style=util.rich.style.Style(color="yellow"),
+                    markup=False,
+                )
+                continue
+            except BaseException as e:  # pylint: disable=broad-exception-caught
+                controller.expHook(e)
+                continue
+
     except BaseException as e:  # pylint: disable=broad-exception-caught
         controller.expHook(e)
         return -1

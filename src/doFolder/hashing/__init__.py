@@ -35,6 +35,7 @@ from .util import (
     normalizeAlgorithms,
     ReCalcHashMode,
 )
+from .executor import FutureWithProgress
 
 __all__ = [
     # Cache managers

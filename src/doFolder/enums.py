@@ -76,6 +76,7 @@ class DifferenceType(Enum):
     NOT_EXISTS = "not_exists"
     ITEM_TYPE_DIFFERENCE = "item_type_difference"
 
+
 class ReCalcHashMode(Enum):
     """
     Controls when file hash values should be recalculated during hash-based operations.
@@ -85,3 +86,11 @@ class ReCalcHashMode(Enum):
     TIMETAG = "TIME_TAG"
     NEVER = "NEVER"
     ALWAYS = "ALWAYS"
+
+
+class TaskStatus(Enum):
+    WAITING = "waiting"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELED = "canceled"

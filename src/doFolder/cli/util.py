@@ -5,13 +5,16 @@ This module provides common utilities used across different CLI components,
 including version information handling and argument parser configuration.
 """
 
+# pylint: disable=unused-import
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import rich
 import rich.console
 import rich.table
 import rich.prompt
+import rich.progress
+import rich.text
 import rich.style
 
 
@@ -66,10 +69,12 @@ def addConsoleInfo(parser: argparse.ArgumentParser):
         help="Disable colored output in the console (useful for piping output to files or other commands)",
     )
 
-def createControllerFromArgs(args:argparse.Namespace):
+
+def createControllerFromArgs(args: argparse.Namespace):
     return ConsoleController(
         traceback=args.traceback, noColor=args.no_color, muteWarning=args.mute_warning
     )
+
 
 @dataclass
 class ConsoleController:
@@ -117,3 +122,48 @@ class ConsoleController:
                 highlight=False,
                 markup=False,
             )
+
+
+def idGenerator():
+    i = 1
+    while True:
+        yield i
+        i += 1
+
+
+class UnitShow:
+    unitNames: list[tuple[int, str]]
+    noneName: str
+
+    def __init__(self, unitNames: list[tuple[int, str]], noneName: str = "N/A") -> None:
+        self.unitNames = unitNames
+        self.noneName = noneName
+
+    def __call__(self, value: _tt.Optional[float]) -> str:
+        if value is None:
+            return self.noneName
+
+        lastUnit = self.unitNames[0][1]
+        for unit in self.unitNames:
+            if value >= unit[0] * 1.3:
+                value = value / unit[0]
+                lastUnit = unit[1]
+            else:
+                return f"{value:.2f}{lastUnit}"
+        return f"{value}{lastUnit}"
+
+
+TimeFormat = UnitShow([(1, "s"), (60, "min"), (60, "h"), (24, "d")])
+SizeFormat = UnitShow(
+    [(1, "B"), (1024, "KB"), (1024, "MB"), (1024, "GB"), (1024, "TB"), (1024, "PB")],
+)
+SizeSpeedFormat = UnitShow(
+    [
+        (1, "B/s"),
+        (1024, "KB/s"),
+        (1024, "MB/s"),
+        (1024, "GB/s"),
+        (1024, "TB/s"),
+        (1024, "PB/s"),
+    ]
+)

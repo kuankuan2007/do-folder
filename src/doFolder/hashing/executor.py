@@ -6,8 +6,9 @@ functionality. It includes progress controllers, future wrappers, and utility
 functions for managing asynchronous tasks with progress reporting.
 """
 
+import time
 from concurrent.futures import Future, ThreadPoolExecutor, CancelledError
-from .util import _tt
+from .util import _tt, TaskStatus
 
 
 ProgressListener = _tt.Callable[[int, int, "ProgressController"], None]
@@ -31,6 +32,10 @@ class ProgressController:
     _total: int = 100
 
     _listener: list[ProgressListener]
+    _history: list[tuple[float, int]]
+
+
+    historyTime: float = 3.0
 
     def __init__(self):
         """
@@ -39,6 +44,7 @@ class ProgressController:
         Sets initial progress to 0, total to 100, and creates an empty listener list.
         """
         self._listener = []
+        self._history = []
 
     def updateProgress(
         self,
@@ -60,6 +66,7 @@ class ProgressController:
         if add is not None:
             progress = self._progress + add
         if progress is not None:
+            self._history.append((time.time(), progress - self._progress))
             self._progress = progress
         if total is not None:
             self._total = total
@@ -108,9 +115,37 @@ class ProgressController:
         """
 
         def _sync(progress: int, total: int, _future: "ProgressController"):
-            self.updateProgress(progress,total= total)
+            self.updateProgress(progress, total=total)
 
         return target.addProgressListener(_sync)
+
+    @property
+    def progress(self) -> int:
+        return self._progress
+
+    @property
+    def total(self) -> int:
+        return self._total
+
+    @property
+    def speed(self):
+        now = time.time()
+        while len(self._history) and now - self._history[0][0] > self.historyTime:
+            self._history.pop(0)
+        if len(self._history) < 2:
+            return None
+        return sum(x[1] for x in self._history) / (now - self._history[0][0])
+
+    @property
+    def remain(self):
+        speed = self.speed
+        if speed is None:
+            return None
+        return (self.total - self.progress) / speed
+
+    @property
+    def percent(self) -> float:
+        return self._progress / self._total * 100
 
 
 _T = _tt.TypeVar("_T")
@@ -124,7 +159,7 @@ class FutureWithProgress(Future[_T], ProgressController):
     This allows asynchronous operations to report their progress while maintaining
     the standard Future interface.
     """
-
+    statue: TaskStatus = TaskStatus.WAITING
     def __init__(self):
         super().__init__()
         ProgressController.__init__(self)
@@ -133,6 +168,12 @@ class FutureWithProgress(Future[_T], ProgressController):
     def _futureStateSync(self, target: Future):
         if target.done():
             self.updateProgress(progress=self._total)
+            if target.cancelled():
+                self.statue = TaskStatus.CANCELED
+            elif target.exception():
+                self.statue = TaskStatus.FAILED
+            else:
+                self.statue = TaskStatus.COMPLETED
 
 
 _P = _tt.TypeVar("_P", bound=Future)
