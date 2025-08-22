@@ -161,7 +161,7 @@ class FileSystemItemBase(_tt.abc.ABC):
             )
         if not isinstance(path, Path):
             path = Path(path)
-        self.path = path if toAbsolute else path.absolute()
+        self.path = path.absolute() if toAbsolute else path
         self.checkExists(unExistsMode)
 
     def checkExists(self, unExistsMode) -> None:
