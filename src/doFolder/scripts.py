@@ -5,7 +5,7 @@ This module provides the main entry points for executing doFolder commands
 from the command line or programmatically.
 """
 
-import sys
+import os
 from .cli import compareCli, mainCli, hashCli
 
 
@@ -19,7 +19,7 @@ def _callCli(cli):
     Note:
         This function calls sys.exit() and will terminate the program.
     """
-    sys.exit(cli())
+    os._exit(cli())
 
 
 def doCompare():
@@ -43,4 +43,5 @@ def main():
 
 
 def doHash():
+    """Entry point for hash calculation CLI command."""
     _callCli(hashCli)

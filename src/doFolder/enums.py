@@ -89,6 +89,7 @@ class ReCalcHashMode(Enum):
 
 
 class TaskStatus(Enum):
+    """Enumeration representing the status of a task during execution."""
     WAITING = "waiting"
     RUNNING = "running"
     COMPLETED = "completed"

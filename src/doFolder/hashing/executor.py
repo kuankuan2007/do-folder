@@ -34,7 +34,6 @@ class ProgressController:
     _listener: list[ProgressListener]
     _history: list[tuple[float, int]]
 
-
     historyTime: float = 3.0
 
     def __init__(self):
@@ -121,37 +120,90 @@ class ProgressController:
 
     @property
     def progress(self) -> int:
+        """Get current progress value.
+        
+        Returns:
+            Current progress as integer.
+        """
         return self._progress
 
     @property
     def total(self) -> int:
+        """Get total progress target value.
+        
+        Returns:
+            Total progress target as integer.
+        """
         return self._total
 
     @property
     def speed(self):
+        """Calculate current processing speed based on history.
+        
+        Returns:
+            Current speed in units per second, or None if insufficient data.
+        """
         now = time.time()
-        while len(self._history) and now - self._history[0][0] > self.historyTime:
+        while self._history and now - self._history[0][0] > self.historyTime:
             self._history.pop(0)
         if len(self._history) < 2:
             return None
-        return sum(x[1] for x in self._history) / (now - self._history[0][0])
+        return sum(x[1] for x in self._history) / self.historyTime
 
     @property
     def remain(self):
+        """Calculate estimated remaining time based on current speed.
+        
+        Returns:
+            Estimated remaining time in seconds, or None if speed unavailable.
+        """
         speed = self.speed
-        if speed is None:
+        if not speed:
             return None
         return (self.total - self.progress) / speed
 
     @property
     def percent(self) -> float:
+        """Calculate completion percentage.
+        
+        Returns:
+            Completion percentage as float (0.0 to 100.0).
+        """
         return self._progress / self._total * 100
 
 
 _T = _tt.TypeVar("_T")
 
 
-class FutureWithProgress(Future[_T], ProgressController):
+class FutureCanSync(Future[_T]):
+    """Future that supports custom running state checking.
+    
+    Extends the standard Future to allow custom logic for determining
+    if the future is currently running.
+    """
+    runningFrom: _tt.Optional[_tt.Callable[[], bool]] = None
+
+    def __init__(self, runningFrom: _tt.Optional[_tt.Callable[[], bool]] = None):
+        """Initialize FutureCanSync with optional custom running check.
+        
+        Args:
+            runningFrom: Optional callable that returns True if the future is running.
+        """
+        super().__init__()
+        self.runningFrom = runningFrom
+
+    def running(self) -> bool:
+        """Check if the future is currently running.
+        
+        Returns:
+            True if the future is running, False otherwise.
+        """
+        if self.runningFrom:
+            return self.runningFrom()
+        return super().running()
+
+
+class FutureWithProgress(FutureCanSync[_T], ProgressController):
     """
     A Future that can report progress.
 
@@ -159,9 +211,11 @@ class FutureWithProgress(Future[_T], ProgressController):
     This allows asynchronous operations to report their progress while maintaining
     the standard Future interface.
     """
+
     statue: TaskStatus = TaskStatus.WAITING
-    def __init__(self):
-        super().__init__()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         ProgressController.__init__(self)
         self.add_done_callback(self._futureStateSync)
 
@@ -175,11 +229,16 @@ class FutureWithProgress(Future[_T], ProgressController):
             else:
                 self.statue = TaskStatus.COMPLETED
 
+    def updateProgress(self, *args, **kwargs):
+        if self.running():
+            self.statue = TaskStatus.RUNNING
+        return super().updateProgress(*args, **kwargs)
 
-_P = _tt.TypeVar("_P", bound=Future)
+
+_P = _tt.TypeVar("_P", bound=FutureCanSync)
 
 
-def futureMap(target: "Future[_T]", creater: _tt.Callable[[], _P] = Future):
+def futureMap(target: "Future[_T]", creater: _tt.Callable[..., _P] = FutureCanSync):
     """
     Map a Future to a new Future using a creator function.
 
@@ -195,7 +254,7 @@ def futureMap(target: "Future[_T]", creater: _tt.Callable[[], _P] = Future):
     Returns:
         _P: The new Future created by the creater function.
     """
-    res = creater()
+    res = creater(runningFrom=target.running)
 
     def _doneCallback(future: Future):
         try:

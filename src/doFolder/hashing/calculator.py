@@ -29,7 +29,7 @@ from . import calculate, cache
 from .executor import (
     ThreadPoolExecutorWithProgress,
     ProgressController,
-    FutureWithProgress
+    FutureWithProgress,
 )
 
 
@@ -169,9 +169,7 @@ class FileHashCalculator:
         _algorithms = normalizeAlgorithms(algorithms)
         cacheResults = tuple(self.findCache(file, i) for i in _algorithms)
         if all(cacheResults):
-            return dict(
-                zip(_algorithms, _tt.cast(tuple[FileHashResult], cacheResults))
-            )
+            return dict(zip(_algorithms, _tt.cast(tuple[FileHashResult], cacheResults)))
         return self.multipleCalc(file, algorithms)
 
     def findCache(
@@ -259,12 +257,12 @@ class FileHashCalculator:
 
         Args:
             file (File): The file to calculate the hash for.
-            algorithm (str, optional): Hash algorithm to use. If None, uses the 
+            algorithm (str, optional): Hash algorithm to use. If None, uses the
                 calculator's default algorithm.
             progress (ProgressController, optional): Progress controller for tracking
                 calculation progress. Can be used to monitor progress or cancel
-                the operation. 
-                
+                the operation.
+
                 .. versionadded:: 2.3.0
 
         Returns:
@@ -295,7 +293,7 @@ class FileHashCalculator:
             progress (ProgressController, optional): Progress controller for tracking
                 calculation progress. Can be used to monitor progress or cancel
                 the operation.
-                
+
                 .. versionadded:: 2.3.0
 
         Returns:

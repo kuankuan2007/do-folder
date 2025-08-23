@@ -1,4 +1,9 @@
-import enum
+"""CLI module for hash calculation functionality.
+
+This module provides command-line interface for calculating hash values of files
+using various algorithms with support for progress tracking and parallel processing.
+"""
+import time
 from concurrent.futures import CancelledError
 
 from . import util
@@ -13,12 +18,24 @@ FIELDS_INIT = {
     "_percent": "0.00%",
     "_file": "",
     "_speed": "N/A",
-    "_statue": "waiting",
+    "_statue": util.TaskStatus.WAITING,
     "_remainTime": "N/A",
+}
+STATUE_MAP = {
+    util.TaskStatus.WAITING: util.rich.text.Text("Waiting", style="bold"),
+    util.TaskStatus.RUNNING: util.rich.text.Text("Running", style="blue bold"),
+    util.TaskStatus.CANCELED: util.rich.text.Text("Canceled", style="red bold"),
+    util.TaskStatus.FAILED: util.rich.text.Text("Failed", style="red bold"),
+    util.TaskStatus.COMPLETED: util.rich.text.Text("Completed", style="green bold"),
 }
 
 
 class AlgorithmFilesAction(util.argparse.Action):
+    """Custom argparse action for handling algorithm and file combinations.
+    
+    Parses command-line arguments in the format: algorithms,... file1 file2 ...
+    where algorithms is a comma-separated list of hash algorithms.
+    """
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs == 0:
             raise ValueError('nargs for AlgorithmFilesAction must be "+" or "*"')
@@ -45,6 +62,14 @@ class AlgorithmFilesAction(util.argparse.Action):
 
 
 def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
+    """Main CLI function for hash calculation commands.
+    
+    Args:
+        arguments: Optional sequence of command-line arguments. If None, uses sys.argv.
+        
+    Returns:
+        Exit code (0 for success, non-zero for failure).
+    """
     parser = util.argparse.ArgumentParser(
         description="Calculate hash values for files using specified algorithms",
     )
@@ -169,7 +194,7 @@ def _checkPath(
                 else (i for i in item if _fs.isFile(i))
             )
         )
-    
+
     return res
 
 
@@ -184,6 +209,15 @@ _taskIdGenerator = util.idGenerator()
 
 @util.dataclass
 class CalcTask:
+    """Represents a hash calculation task with progress tracking.
+    
+    Attributes:
+        feature: Future object with progress tracking for the calculation.
+        result: The result of the hash calculation, if completed.
+        file: The file being hashed.
+        algorithms: Set of hash algorithms to apply.
+        id: Unique identifier for the task.
+    """
     feature: _hashing.FutureWithProgress[_hashing.MultipleHashResult]
     result: _tt.Optional[_hashing.MultipleHashResult]
     file: _fs.File
@@ -192,29 +226,34 @@ class CalcTask:
 
     @property
     def fields(self):
+        """Get formatted field values for progress display.
+        
+        Returns:
+            Dictionary of formatted fields for progress bar display.
+        """
         return {
             "_now": util.SizeFormat(self.feature.progress),
             "_total": util.SizeFormat(self.feature.total),
             "_percent": f"{self.feature.percent:0.2f}%",
             "_file": self.file.path,
             "_speed": util.SizeSpeedFormat(self.feature.speed),
-            "_statue": self.feature.statue.value,
+            "_statue": STATUE_MAP[self.feature.statue],
             "_remainTime": util.TimeFormat(self.feature.remain),
         }
 
 
-class ProgtrssShow(enum.Flag):
-    parts = enum.auto()
-    total = enum.auto()
-    all = enum.auto()
-
-
 class CalcProgress(util.rich.progress.Progress):
+    """Progress tracker for hash calculation tasks.
+    
+    Extends Rich Progress to provide custom progress tracking for multiple
+    concurrent hash calculation tasks with detailed status information.
+    """
     taskList: list[CalcTask]
     taskMap: dict[int, util.rich.progress.TaskID]
 
-    def __init__(
+    def __init__( # pylint: disable=too-many-arguments
         self,
+        *,
         consoleController: util.ConsoleController,
         auto_refresh: bool = True,
         refresh_per_second: float = 3,
@@ -261,14 +300,27 @@ class CalcProgress(util.rich.progress.Progress):
         self.taskMap = {}
 
     def traceTask(self, *args: CalcTask):
+        """Add tasks to be tracked by this progress instance.
+        
+        Args:
+            *args: CalcTask instances to track.
+        """
         self.taskList.extend(args)
 
     def getTaskId(self, task: CalcTask) -> util.rich.progress.TaskID:
+        """Get or create a Rich progress task ID for a CalcTask.
+        
+        Args:
+            task: The CalcTask to get an ID for.
+            
+        Returns:
+            Rich progress TaskID for the given task.
+        """
         if task.id not in self.taskMap:
             self.taskMap[task.id] = self.add_task(
                 description=str(task.file.path),
                 completed=0,
-                start=False,
+                start=True,
                 total=None,
                 visible=True,
                 **FIELDS_INIT,
@@ -279,24 +331,29 @@ class CalcProgress(util.rich.progress.Progress):
         self,
         task: CalcTask,
     ):
+        """Update progress display for a specific task.
+        
+        Args:
+            task: The CalcTask to update progress for.
+        """
         self.update(
             self.getTaskId(task),
             description=str(task.file.path),
-            completed=task.feature.progress,
             advance=None,
+            total=task.feature.total,
+            completed=task.feature.progress,
             refresh=False,
             **task.fields,
         )
 
     def refreshCalcTask(self) -> None:
+        """Refresh progress display for all tracked tasks."""
 
         for i in self.taskList:
             self.updateTask(i)
 
-        return self.refresh()
 
-
-def _hashCli(
+def _hashCli(  # pylint: disable=too-many-arguments, too-many-locals
     hashGroups: HashGroup,
     *,
     controller: util.ConsoleController,
@@ -305,7 +362,7 @@ def _hashCli(
     disableAggregateAlgos: bool = True,
     toAbsolute: bool = False,
     threadNum: int = 4,
-) -> int:  # pylint: disable=too-many-arguments
+) -> int:
 
     try:
 
@@ -347,12 +404,14 @@ def _hashCli(
                 progress.refreshCalcTask()
                 if flag:
                     break
+                time.sleep(0.1)
 
         for i in calcTasks:
             try:
                 res = i.feature.result()
                 controller.console.print(
-                    f"\n{i.file.path}", style="bold green", markup=False
+                    util.rich.text.Text(f"\n{i.file.path}", style="bold green"),
+                    markup=False,
                 )
                 for algo, res in res.items():
                     controller.console.print(

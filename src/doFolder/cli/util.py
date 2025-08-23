@@ -19,7 +19,7 @@ import rich.style
 
 
 from .. import env as _env, __pkginfo__ as _pkginfo, exception as _ex, globalType as _tt
-
+from ..enums import TaskStatus
 
 console = rich.get_console()
 
@@ -71,6 +71,14 @@ def addConsoleInfo(parser: argparse.ArgumentParser):
 
 
 def createControllerFromArgs(args: argparse.Namespace):
+    """Create a ConsoleController from parsed command-line arguments.
+    
+    Args:
+        args: Parsed arguments containing console control options.
+        
+    Returns:
+        ConsoleController instance configured from arguments.
+    """
     return ConsoleController(
         traceback=args.traceback, noColor=args.no_color, muteWarning=args.mute_warning
     )
@@ -78,6 +86,11 @@ def createControllerFromArgs(args: argparse.Namespace):
 
 @dataclass
 class ConsoleController:
+    """Controller for console output with styling and error handling.
+    
+    Manages console output formatting, color settings, and exception handling
+    with support for traceback display and warning muting.
+    """
     traceback: bool
     noColor: bool
     muteWarning: bool = False
@@ -92,6 +105,11 @@ class ConsoleController:
         self,
         e: BaseException,
     ):
+        """Handle and display exceptions with appropriate formatting.
+        
+        Args:
+            e: The exception to handle and display.
+        """
         excType = e.__class__
 
         if self.traceback:
@@ -115,6 +133,11 @@ class ConsoleController:
                     self.console.print(f"[green bold]Note:[/bold green] {note}")
 
     def warn(self, content: str):
+        """Display a warning message if warnings are not muted.
+        
+        Args:
+            content: The warning message content to display.
+        """
         if not self.muteWarning:
             self.console.print(
                 "WARN: " + content,
@@ -125,19 +148,26 @@ class ConsoleController:
 
 
 def idGenerator():
+    """Generate sequential integer IDs starting from 1.
+    
+    Returns:
+        Generator yielding sequential integers.
+    """
     i = 1
     while True:
         yield i
         i += 1
 
 
+@dataclass
 class UnitShow:
+    """Formatter for displaying values with appropriate unit scaling.
+    
+    Converts numeric values to human-readable format with appropriate units
+    (e.g., bytes to KB/MB/GB, seconds to minutes/hours/days).
+    """
     unitNames: list[tuple[int, str]]
-    noneName: str
-
-    def __init__(self, unitNames: list[tuple[int, str]], noneName: str = "N/A") -> None:
-        self.unitNames = unitNames
-        self.noneName = noneName
+    noneName: str = "N/A"
 
     def __call__(self, value: _tt.Optional[float]) -> str:
         if value is None:
