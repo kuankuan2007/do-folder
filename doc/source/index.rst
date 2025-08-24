@@ -20,6 +20,8 @@ The ``doFolder`` library is a comprehensive Python package designed to provide a
 
 The library addresses common limitations in traditional file system manipulation by providing a unified interface that abstracts platform-specific details while maintaining full compatibility across Windows, macOS, and Linux environments.
 
+In addition to the Python API, doFolder provides powerful command-line tools for file and directory operations, including file comparison and hash calculation utilities. These tools are available through both unified interface commands (``do-folder [subcommand]``) and direct commands (``do-compare``, ``do-hash``).
+
 API Reference
 =============================
 
@@ -28,6 +30,17 @@ API Reference
    :caption: Core API Documentation
 
    apis/doFolder
+
+Command Line Interface
+=============================
+
+The doFolder package provides a comprehensive command-line interface for file and directory operations. For detailed information about available commands and options, see:
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Command Line Tools
+
+   cli
 
 Architecture and Design Principles
 ======================================
@@ -96,8 +109,11 @@ Primary Classes
 Basic Usage Patterns
 =============================
 
-File Operations
+Python API Usage
 -------------------------------
+
+File Operations
+~~~~~~~~~~~~~~~
 
 The ``File`` class provides a comprehensive interface for file manipulation:
 
@@ -122,7 +138,7 @@ The ``File`` class provides a comprehensive interface for file manipulation:
    loaded_data = document.loadAsJson()
 
 Directory Operations
--------------------------------
+~~~~~~~~~~~~~~~~~~~~
 
 The ``Directory`` class facilitates directory-level operations:
 
@@ -143,6 +159,28 @@ The ``Directory`` class facilitates directory-level operations:
    # Directory traversal
    for item in workspace.recursiveTraversal():
        print(f"Processing: {item.path}")
+
+Command Line Usage
+-------------------------------
+
+The doFolder package also provides command-line tools for common file system operations:
+
+.. code-block:: bash
+
+   # Compare two directories
+   do-folder compare /path/to/dir1 /path/to/dir2
+   # or use the direct command
+   do-compare /path/to/dir1 /path/to/dir2
+   
+   # Calculate file hashes
+   do-folder hash -a sha256 file1.txt file2.txt
+   # or use the direct command
+   do-hash -a sha256 file1.txt file2.txt
+   
+   # Synchronize directories
+   do-folder compare /source /backup --sync --sync-direction A2B
+
+For detailed CLI documentation, see the :doc:`cli` section.
 
 Advanced Functionality
 =============================

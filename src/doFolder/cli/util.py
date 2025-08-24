@@ -55,7 +55,7 @@ def addVersionInfo(parser: argparse.ArgumentParser):
 def addConsoleInfo(parser: argparse.ArgumentParser):
     """Add console information arguments to an ArgumentParser."""
     parser.add_argument(
-        "-w", "--mute-warning", action="store_true", help="Mute warning messages"
+        "-m", "--mute-warning", action="store_true", help="Mute warning messages"
     )
     parser.add_argument(
         "-t",
@@ -68,45 +68,54 @@ def addConsoleInfo(parser: argparse.ArgumentParser):
         action="store_true",
         help="Disable colored output in the console (useful for piping output to files or other commands)",
     )
+    parser.add_argument(
+        "-w",
+        "--console-width",
+        type=int,
+        help="Set the console width for output formatting",
+    )
 
 
 def createControllerFromArgs(args: argparse.Namespace):
     """Create a ConsoleController from parsed command-line arguments.
-    
+
     Args:
         args: Parsed arguments containing console control options.
-        
+
     Returns:
         ConsoleController instance configured from arguments.
     """
     return ConsoleController(
-        traceback=args.traceback, noColor=args.no_color, muteWarning=args.mute_warning
+        traceback=args.traceback, noColor=args.no_color, muteWarning=args.mute_warning,consoleWidth=args.console_width
     )
 
 
 @dataclass
 class ConsoleController:
     """Controller for console output with styling and error handling.
-    
+
     Manages console output formatting, color settings, and exception handling
     with support for traceback display and warning muting.
     """
+
     traceback: bool
     noColor: bool
     muteWarning: bool = False
     console: rich.console.Console = console
+    consoleWidth: _tt.Optional[int] = None
 
     def __post_init__(self):
         """Initialize cache manager if not provided."""
         self.console.no_color = self.noColor
         self.console.legacy_windows = self.noColor
-
+        if self.consoleWidth is not None:
+            self.console.width = self.consoleWidth
     def expHook(
         self,
         e: BaseException,
     ):
         """Handle and display exceptions with appropriate formatting.
-        
+
         Args:
             e: The exception to handle and display.
         """
@@ -134,7 +143,7 @@ class ConsoleController:
 
     def warn(self, content: str):
         """Display a warning message if warnings are not muted.
-        
+
         Args:
             content: The warning message content to display.
         """
@@ -149,7 +158,7 @@ class ConsoleController:
 
 def idGenerator():
     """Generate sequential integer IDs starting from 1.
-    
+
     Returns:
         Generator yielding sequential integers.
     """
@@ -162,10 +171,11 @@ def idGenerator():
 @dataclass
 class UnitShow:
     """Formatter for displaying values with appropriate unit scaling.
-    
+
     Converts numeric values to human-readable format with appropriate units
     (e.g., bytes to KB/MB/GB, seconds to minutes/hours/days).
     """
+
     unitNames: list[tuple[int, str]]
     noneName: str = "N/A"
 
