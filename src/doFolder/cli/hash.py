@@ -3,12 +3,60 @@
 This module provides command-line interface for calculating hash values of files
 using various algorithms with support for progress tracking and parallel processing.
 """
+
 import time
 from concurrent.futures import CancelledError
+from pathlib import Path
 
 from . import util
 from .. import globalType as _tt, exception as _ex, fileSystem as _fs
 from .. import hashing as _hashing
+
+
+def getShortDisplayNames(  # pylint: disable=too-many-branches
+    paths: list[Path],
+) -> dict[Path, Path]:
+    """Generate short display names for paths by resolving conflicts.
+    
+    When multiple paths have the same filename, returns progressively longer
+    path segments until all names are unique.
+    
+    Args:
+        paths: List of Path objects to generate display names for.
+        
+    Returns:
+        Dictionary mapping original paths to their shortened display names.
+    """
+    if not paths:
+        return {}
+    pathStrings = [str(path) for path in paths]
+    displayNames = [path.name for path in paths]
+    nameCounts = {}
+    for i, name in enumerate(displayNames):
+        if name not in nameCounts:
+            nameCounts[name] = []
+        nameCounts[name].append(i)
+    for name, indices in nameCounts.items():
+        if len(indices) > 1:
+            conflictingPaths = [paths[i] for i in indices]
+            maxDepth = max(len(path.parts) for path in conflictingPaths)
+            for depth in range(2, maxDepth + 1):
+                tempNames = []
+                for path in conflictingPaths:
+                    parts = path.parts
+                    if len(parts) >= depth:
+                        tempName = str(Path(*parts[-depth:]))
+                    else:
+                        tempName = str(path)
+                    tempNames.append(tempName)
+                if len(set(tempNames)) == len(tempNames):
+                    for i, tempName in enumerate(tempNames):
+                        displayNames[indices[i]] = tempName
+                    break
+            else:
+                for i in indices:
+                    displayNames[i] = pathStrings[i]
+    return dict(zip(paths, (Path(i) for i in displayNames)))
 
 
 Algorithm = str
@@ -32,10 +80,11 @@ STATUE_MAP = {
 
 class AlgorithmFilesAction(util.argparse.Action):
     """Custom argparse action for handling algorithm and file combinations.
-    
+
     Parses command-line arguments in the format: algorithms,... file1 file2 ...
     where algorithms is a comma-separated list of hash algorithms.
     """
+
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs == 0:
             raise ValueError('nargs for AlgorithmFilesAction must be "+" or "*"')
@@ -63,10 +112,10 @@ class AlgorithmFilesAction(util.argparse.Action):
 
 def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
     """Main CLI function for hash calculation commands.
-    
+
     Args:
         arguments: Optional sequence of command-line arguments. If None, uses sys.argv.
-        
+
     Returns:
         Exit code (0 for success, non-zero for failure).
     """
@@ -113,6 +162,18 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
     parser.add_argument(
         "-p", "--to-absolute", action="store_true", help="Use absolute paths"
     )
+    parser.add_argument(
+        "-f",
+        "--full-path",
+        action="store_true",
+        help="Display the full path in all circumstances",
+    )
+    parser.add_argument(
+        "-s",
+        "--show-all",
+        action="store_true",
+        help="Display all progress bars in any situation.",
+    )
     parser.add_argument("-n", "--thread-num", type=int, default=4)
     util.addConsoleInfo(parser)
 
@@ -133,6 +194,8 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
         toAbsolute=args.to_absolute,
         controller=util.createControllerFromArgs(args),
         threadNum=args.thread_num,
+        fullPath=args.full_path,
+        showAll=args.show_all,
     )
 
 
@@ -170,6 +233,7 @@ def _checkPath(
     flatGroup: FlatHashGroup,
     *,
     controller: util.ConsoleController,
+    showNames: dict[Path, Path],
     allowDirectory: bool = False,
     recursive: bool = False,
 ):
@@ -186,15 +250,13 @@ def _checkPath(
                 controller.warn(
                     "Some paths are directories. If you want to expand their contents, use the -d option. To expand recursively, add the -r option."
                 )
-        res.extend(
-            (i, algorithms)
-            for i in (
-                item.recursiveTraversal(hideDirectory=True)
-                if recursive
-                else (i for i in item if _fs.isFile(i))
-            )
-        )
-
+        for i in (
+            item.recursiveTraversal(hideDirectory=True)
+            if recursive
+            else (i for i in item if _fs.isFile(i))
+        ):
+            res.append((i, algorithms))
+            showNames[i.path] = showNames.get(path, path) / i.path.relative_to(path)
     return res
 
 
@@ -210,7 +272,7 @@ _taskIdGenerator = util.idGenerator()
 @util.dataclass
 class CalcTask:
     """Represents a hash calculation task with progress tracking.
-    
+
     Attributes:
         feature: Future object with progress tracking for the calculation.
         result: The result of the hash calculation, if completed.
@@ -218,16 +280,18 @@ class CalcTask:
         algorithms: Set of hash algorithms to apply.
         id: Unique identifier for the task.
     """
+
     feature: _hashing.FutureWithProgress[_hashing.MultipleHashResult]
     result: _tt.Optional[_hashing.MultipleHashResult]
     file: _fs.File
     algorithms: set[str]
+    showName: str
     id: int = util.field(default_factory=_taskIdGenerator.__next__)
 
     @property
     def fields(self):
         """Get formatted field values for progress display.
-        
+
         Returns:
             Dictionary of formatted fields for progress bar display.
         """
@@ -244,14 +308,16 @@ class CalcTask:
 
 class CalcProgress(util.rich.progress.Progress):
     """Progress tracker for hash calculation tasks.
-    
+
     Extends Rich Progress to provide custom progress tracking for multiple
     concurrent hash calculation tasks with detailed status information.
     """
+
     taskList: list[CalcTask]
     taskMap: dict[int, util.rich.progress.TaskID]
+    showRunningOnly: bool = False
 
-    def __init__( # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
         consoleController: util.ConsoleController,
@@ -264,6 +330,7 @@ class CalcProgress(util.rich.progress.Progress):
         get_time: _tt.Callable[[], float] | None = None,
         disable: bool = False,
         expand: bool = False,
+        showRunningOnly: bool = False,
     ) -> None:
 
         super().__init__(
@@ -298,10 +365,11 @@ class CalcProgress(util.rich.progress.Progress):
 
         self.taskList = []
         self.taskMap = {}
+        self.showRunningOnly = showRunningOnly
 
     def traceTask(self, *args: CalcTask):
         """Add tasks to be tracked by this progress instance.
-        
+
         Args:
             *args: CalcTask instances to track.
         """
@@ -309,20 +377,20 @@ class CalcProgress(util.rich.progress.Progress):
 
     def getTaskId(self, task: CalcTask) -> util.rich.progress.TaskID:
         """Get or create a Rich progress task ID for a CalcTask.
-        
+
         Args:
             task: The CalcTask to get an ID for.
-            
+
         Returns:
             Rich progress TaskID for the given task.
         """
         if task.id not in self.taskMap:
             self.taskMap[task.id] = self.add_task(
-                description=str(task.file.path),
+                description=str(task.showName),
                 completed=0,
                 start=True,
                 total=None,
-                visible=True,
+                visible=not self.showRunningOnly,
                 **FIELDS_INIT,
             )
         return self.taskMap[task.id]
@@ -332,7 +400,7 @@ class CalcProgress(util.rich.progress.Progress):
         task: CalcTask,
     ):
         """Update progress display for a specific task.
-        
+
         Args:
             task: The CalcTask to update progress for.
         """
@@ -343,6 +411,11 @@ class CalcProgress(util.rich.progress.Progress):
             total=task.feature.total,
             completed=task.feature.progress,
             refresh=False,
+            visible=(
+                (task.feature.statue == util.TaskStatus.RUNNING)
+                if self.showRunningOnly
+                else True
+            ),
             **task.fields,
         )
 
@@ -362,6 +435,8 @@ def _hashCli(  # pylint: disable=too-many-arguments, too-many-locals
     disableAggregateAlgos: bool = True,
     toAbsolute: bool = False,
     threadNum: int = 4,
+    fullPath: bool = False,
+    showAll: bool = False,
 ) -> int:
 
     try:
@@ -374,15 +449,22 @@ def _hashCli(  # pylint: disable=too-many-arguments, too-many-locals
         if not disableAggregateAlgos:
             flatGroup = _aggregateAlgos(flatGroup)
 
+        showNames = (
+            {i: i for i, _ in flatGroup}
+            if fullPath
+            else getShortDisplayNames([i for i, _ in flatGroup])
+        )
+
         finalGroup = _checkPath(
             flatGroup,
             controller=controller,
+            showNames=showNames,
             allowDirectory=allowDirectory,
             recursive=recursive,
         )
 
         with CalcProgress(
-            consoleController=controller
+            consoleController=controller, showRunningOnly=not showAll
         ) as progress, _hashing.ThreadedFileHashCalculator(
             threadNum=threadNum
         ) as calculator:
@@ -392,6 +474,7 @@ def _hashCli(  # pylint: disable=too-many-arguments, too-many-locals
                     result=None,
                     file=file,
                     algorithms=algorithms,
+                    showName=str(showNames[file.path]),
                 )
                 for file, algorithms in finalGroup
             ]

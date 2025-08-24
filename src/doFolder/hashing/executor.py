@@ -121,7 +121,7 @@ class ProgressController:
     @property
     def progress(self) -> int:
         """Get current progress value.
-        
+
         Returns:
             Current progress as integer.
         """
@@ -130,7 +130,7 @@ class ProgressController:
     @property
     def total(self) -> int:
         """Get total progress target value.
-        
+
         Returns:
             Total progress target as integer.
         """
@@ -139,7 +139,7 @@ class ProgressController:
     @property
     def speed(self):
         """Calculate current processing speed based on history.
-        
+
         Returns:
             Current speed in units per second, or None if insufficient data.
         """
@@ -153,7 +153,7 @@ class ProgressController:
     @property
     def remain(self):
         """Calculate estimated remaining time based on current speed.
-        
+
         Returns:
             Estimated remaining time in seconds, or None if speed unavailable.
         """
@@ -165,11 +165,13 @@ class ProgressController:
     @property
     def percent(self) -> float:
         """Calculate completion percentage.
-        
+
         Returns:
             Completion percentage as float (0.0 to 100.0).
         """
-        return self._progress / self._total * 100
+        if not self.total:
+            return 0.0
+        return self._progress / self._total * 100.0
 
 
 _T = _tt.TypeVar("_T")
@@ -177,15 +179,16 @@ _T = _tt.TypeVar("_T")
 
 class FutureCanSync(Future[_T]):
     """Future that supports custom running state checking.
-    
+
     Extends the standard Future to allow custom logic for determining
     if the future is currently running.
     """
+
     runningFrom: _tt.Optional[_tt.Callable[[], bool]] = None
 
     def __init__(self, runningFrom: _tt.Optional[_tt.Callable[[], bool]] = None):
         """Initialize FutureCanSync with optional custom running check.
-        
+
         Args:
             runningFrom: Optional callable that returns True if the future is running.
         """
@@ -194,7 +197,7 @@ class FutureCanSync(Future[_T]):
 
     def running(self) -> bool:
         """Check if the future is currently running.
-        
+
         Returns:
             True if the future is running, False otherwise.
         """
