@@ -3,6 +3,8 @@ Utility functions for file system operations.
 
 This module provides helper functions for creating file system items, type checking,
 and converting between different file system representations.
+
+.. versionadded:: 2.3.0
 """
 
 from .. import (

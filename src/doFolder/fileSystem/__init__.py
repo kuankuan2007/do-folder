@@ -12,6 +12,9 @@ Main classes:
 Main functions:
 - createItem(): Factory function to create File or Directory objects
 - isFile()/isDir(): Type checking functions
+
+.. versionchanged:: 2.3.0
+    fileSystem is now a subpackage, instead of submodule
 """
 
 from .classes import File, Directory, FileSystemItem, FileSystemItemBase, Folder, FileSystemItemLike
