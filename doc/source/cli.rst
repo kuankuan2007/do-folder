@@ -205,6 +205,8 @@ Options
    -s, --show-all       Display all progress bars in any situation
    
    -n, --thread-num INT Number of threads for parallel processing (default: 4)
+   
+   --no-progress        Disable progress bars and show results only
 
 Supported Algorithms
 ^^^^^^^^^^^^^^^^^^^^
@@ -278,6 +280,12 @@ The hash command supports parallel processing for better performance:
    
    # Show all progress bars for detailed monitoring (direct command)
    do-hash -s -r /path/with/many/files
+   
+   # Disable progress bars for cleaner output (unified interface)
+   do-folder hash --no-progress -r /large/directory
+   
+   # Disable progress bars for cleaner output (direct command)
+   do-hash --no-progress -r /large/directory
 
 Exit Codes
 ~~~~~~~~~~

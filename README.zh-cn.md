@@ -2,20 +2,22 @@
 
 [![PyPI version](https://badge.fury.io/py/doFolder.svg)](https://badge.fury.io/py/doFolder) [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/kuankuan2007/do-folder) ![GitHub top language](https://img.shields.io/github/languages/top/kuankuan2007/do-folder) [![License](https://img.shields.io/badge/license-MulanPSL--2.0-blue.svg)](./LICENSE) [![Documentation Status](https://img.shields.io/badge/docs-available-brightgreen.svg?style=flat&logo=read-the-docs)](https://do-folder.doc.kuankuan.site)
 
-**doFolder** 是一个强大、直观且跨平台的文件系统管理库，为文件和目录操作提供了高级的面向对象接口。基于 Python 的 `pathlib` 构建，简化了常见的文件操作，同时提供了散列、内容操作和目录树操作等高级功能。
+**doFolder** 是一个功能强大、直观且跨平台的文件系统管理库，提供了一个高级的、面向对象的接口来处理文件和目录。它基于 Python 的 `pathlib` 构建，简化了常见的文件操作，同时提供了哈希、内容操作和目录树操作等高级功能。
 
 ## ✨ 主要特性
 
-- **🎯 面向对象设计**: 将文件和目录作为 Python 对象处理
-- **🌐 跨平台兼容**: 在 Windows、macOS 和 Linux 上无缝工作
-- **🛤️ 高级路径处理**: 基于 Python pathlib 的强大路径管理
-- **📁 完整的文件操作**: 创建、移动、复制、删除和修改文件和目录
-- **📝 内容管理**: 支持编码的文件内容读写
-- **🌳 目录树操作**: 导航和操作目录结构
-- **🔍 文件比较**: 多种比较模式下的文件和目录比较
-- **🔒 散列支持**: 生成和验证文件散列以检查完整性
-- **⚠️ 灵活的错误处理**: 针对不同用例的全面错误模式
-- **🏷️ 类型安全**: 完整的类型提示，提供更好的 IDE 支持和代码可靠性
+- **🎯 面向对象设计**：将文件和目录作为 Python 对象进行操作
+- **🌐 跨平台兼容性**：在 Windows、macOS 和 Linux 上无缝工作
+- **🛤️ 高级路径处理**：基于 Python 的 pathlib 进行稳健的路径管理
+- **📁 完整的文件操作**：创建、移动、复制、删除和修改文件和目录
+- **📝 内容管理**：支持编码的文件内容读写
+- **🌳 目录树操作**：导航和操作目录结构
+- **🔍 文件比较**：支持多种比较模式的文件和目录比较
+- **🔒 哈希支持**：生成和验证文件哈希以进行完整性检查，支持多种算法
+- **⚡ 高性能哈希**：多线程哈希计算，具有智能缓存和进度跟踪
+- **🖥️ 命令行工具**：全面的 CLI 接口，包括直接命令（`do-compare`、`do-hash`）和统一接口（`do-folder`）
+- **⚠️ 灵活的错误处理**：针对不同用例的全面错误处理模式
+- **🏷️ 类型安全**：完整的类型提示，提供更好的 IDE 支持和代码可靠性
 
 ## 📦 安装
 
@@ -23,9 +25,42 @@
 pip install doFolder
 ```
 
-**要求:** Python 3.8+
+**要求：** Python 3.9+
 
-## 🚀 快速开始
+**注意：** 从 2.3.0 版本开始不再支持 Python 3.8
+
+## 🚀 快速入门
+
+### 命令行快速入门
+
+安装后，您可以立即开始使用 doFolder 的命令行工具：
+
+```bash
+# 比较两个目录
+do-compare /path/to/source /path/to/backup
+
+# 比较并同步目录
+do-compare /path/to/source /path/to/backup --sync --sync-direction A2B
+
+# 计算文件哈希
+do-hash file1.txt file2.txt
+
+# 使用特定算法计算
+do-hash -a sha256,md5 README.md README.zh-cn.md
+
+# 递归哈希目录中的所有文件
+do-hash -r -d /path/to/project
+
+# 使用统一接口
+do-folder compare /dir1 /dir2 --compare-mode CONTENT
+do-folder hash -a blake2b *.py
+# 或者
+python -m doFolder compare /dir1 /dir2 --compare-mode CONTENT
+python -m doFolder hash -a blake2b *.py
+# 注意：do-folder 等同于 python -m doFolder，您可以选择任意一种使用
+```
+
+### Python 快速入门
 
 ```python
 from doFolder import File, Directory, ItemType
@@ -50,12 +85,12 @@ config_file.move("./settings/")
 
 # 列出目录内容
 for item in project_dir:
-    print(f"{item.name} ({'目录' if item.isDir else '文件'})")
+    print(f"{item.name} ({'Directory' if item.isDir else 'File'})")
 ```
 
-## 📖 使用示例
+## 📖 用法示例
 
-### 文件操作
+### 处理文件
 
 ```python
 from doFolder import File
@@ -79,11 +114,20 @@ with file.open("w", encoding="utf-8") as f:
 print(f"大小: {file.state.st_size} 字节")
 print(f"修改时间: {file.state.st_mtime}")
 
-# 文件散列
-print(f"散列值: {file.hash()}")
+# 文件哈希
+print(f"哈希: {file.hash()}")
+print(f"SHA256: {file.hash('sha256')}")
+print(f"MD5: {file.hash('md5')}")
+
+# 使用多线程哈希以获得更好性能
+from doFolder.hashing import ThreadedFileHashCalculator
+
+with ThreadedFileHashCalculator(threadNum=4) as calculator:
+    result = calculator.get(file)
+    print(f"线程哈希: {result.hash}")
 ```
 
-### 目录操作
+### 处理目录
 
 ```python
 from doFolder import Directory, ItemType
@@ -109,14 +153,33 @@ for item in d:
 for item in d.recursiveTraversal(hideDirectory=False):
     print(f"{'📁' if item.isDir else '📄'} {item.path}")
 
-# 查找特定子项目
+# 查找特定的子项目
 py_files = ['__init__.py']
+```
+
+### 命令行操作
+
+doFolder 提供了强大的命令行工具用于文件系统操作：
+
+```bash
+# 使用不同模式比较两个目录
+do-folder compare /path/to/dir1 /path/to/dir2 --compare-mode CONTENT
+do-compare /path/to/dir1 /path/to/dir2 --sync --sync-direction A2B
+
+# 使用多种算法计算文件哈希
+do-folder hash -a sha256,md5 file1.txt file2.txt
+do-hash -a blake2b -r /path/to/directory
+
+# 对大文件使用多线程以提高性能
+do-hash -n 8 -d -r -a sha256 /path/to/large_files/
+# 选项：-n: 线程数, -d: 允许目录, -r: 递归
 ```
 
 ### 高级操作
 
 ```python
 from doFolder import File, Directory, compare
+from doFolder.hashing import FileHashCalculator, multipleFileHash
 
 # 文件比较
 file1 = File("version1.txt")
@@ -127,45 +190,230 @@ if compare.compare(file1, file2):
 else:
     print("文件不同")
 
-# 目录比较
+# 带有详细差异分析的目录比较
 dir1 = Directory("./project_v1")
 dir2 = Directory("./project_v2")
 
-diff = getDifference(dir1, dir2)
+diff = compare.getDifference(dir1, dir2)
+if diff:
+    # 以扁平结构打印所有差异
+    for d in diff.toFlat():
+        print(f"差异: {d.path1} vs {d.path2} - {d.diffType}")
 
-# 散列验证
+# 带缓存和多算法的高级哈希
+calculator = FileHashCalculator()
 file = File("important_data.txt")
-original_hash = file.hash()
-# ... 文件操作 ...
-if file.hash() == original_hash:
-    print("文件完整性验证通过")
 
-# 带错误处理的安全操作
-from doFolder import UnExistsMode
+# 单一算法
+result = calculator.get(file, "sha256")
+print(f"SHA256: {result.hash}")
 
-safe_file = File("might_not_exist.txt", unExists=UnExistsMode.CREATE)
-# 如果文件不存在将自动创建
+# 缓存哈希以提高性能
+print(f"第二次结果: {calculator.get(file).hash}")
+
+file.content = "新内容".encode("utf-8")
+
+# 文件内容更改时缓存将失效
+print(f"第三次结果: {calculator.get(file).hash}")
+
+# 一次性使用多种算法（只需一次磁盘读取）
+results = calculator.multipleGet(file, ["sha256", "md5", "blake2b"])
+for algo, result in results.items():
+    print(f"{algo.upper()}: {result.hash}")
 ```
 
 ### 路径工具
 
-```python
-from doFolder import Path
+自 v2.0.0 起，`doFolder.Path` 是 Python 内置 `pathlib.Path` 的别名，取代了旧版本中自定义的 `specialStr.Path`。
 
-# 增强的路径操作
-path = Path("./documents/projects/my_app/src/main.py")
+有关详细信息，请参阅 [pathlib 官方文档](https://docs.python.org/3/library/pathlib.html)。
 
-print(f"项目根目录: {path.parents[3]}")  # ./documents/projects/my_app
-print(f"相对于项目: {path.relative_to_parent(3)}")  # src/main.py
-print(f"扩展名: {path.suffix}")  # .py
-print(f"文件名: {path.stem}")  # main
+## 💻 命令行界面
 
-# 路径操作
-config_path = path.sibling("config.json")  # 同目录，不同文件
-backup_path = path.with_name(f"{path.stem}_backup{path.suffix}")
+doFolder 提供了强大的命令行工具，支持统一接口和直接命令两种方式进行文件系统操作。
+
+### 安装与使用
+
+安装 doFolder 后，您可以使用以下命令行工具：
+
+```bash
+# 安装 doFolder
+pip install doFolder
+
+# 直接命令（快捷方式）
+do-compare /path1 /path2    # 文件/目录比较
+do-hash file.txt            # 文件哈希
+
+# 统一接口
+do-folder compare /path1 /path2    # 等同于 do-compare
+do-folder hash file.txt            # 等同于 do-hash
+
+# Python 模块接口
+python -m doFolder compare /path1 /path2
+python -m doFolder hash file.txt
 ```
 
-## 🔧 高级功能
+### 比较命令
+
+使用各种选项比较文件或目录：
+
+```bash
+# 基本比较
+do-compare file1.txt file2.txt
+do-compare /directory1 /directory2
+
+# 不同的比较模式
+do-compare /dir1 /dir2 --compare-mode CONTENT    # 比较文件内容
+do-compare /dir1 /dir2 --compare-mode SIZE       # 比较文件大小
+do-compare /dir1 /dir2 --compare-mode TIMETAG    # 比较修改时间
+
+# 同步
+do-compare /source /backup --sync --sync-direction A2B   # 将 A 同步到 B
+do-compare /dir1 /dir2 --sync --sync-direction BOTH      # 双向同步
+
+# 覆盖处理
+do-compare /dir1 /dir2 --sync --overwrite AUTO          # 根据时间戳自动决定
+do-compare /dir1 /dir2 --sync --overwrite ASK           # 对每个冲突进行询问
+```
+
+### 哈希命令
+
+使用多种算法和选项计算文件哈希：
+
+```bash
+# 基本哈希（默认为 SHA256）
+do-hash file.txt
+
+# 多种算法
+do-hash -a sha256,md5,sha1 file.txt
+do-hash -a blake2b important_document.txt -a md5,sha1 another_file.txt
+
+# 目录哈希
+do-hash -d /directory                    # 哈希目录中的所有文件（非递归）
+do-hash -r -d /project                   # 递归目录哈希
+
+# 性能选项
+do-hash -n 8 -d -a sha256,md5,blake2b ./src
+
+# 禁用进度显示以获得更清晰的输出
+do-hash --no-progress -r -d /path/to/files
+
+# 路径格式化
+do-hash -p /absolute/path/file.txt       # 使用绝对路径
+do-hash -f file.txt                      # 始终显示完整路径
+```
+
+### 全局选项
+
+所有命令都支持这些全局选项：
+
+```bash
+# 版本信息
+do-folder -v                    # 显示版本
+do-folder -vv                   # 显示详细版本信息
+
+# 输出控制
+do-folder --no-color compare /dir1 /dir2     # 禁用彩色输出
+do-folder -w 120 hash file.txt              # 设置控制台宽度
+do-folder -m hash file.txt                  # 静默警告
+do-folder -t compare /dir1 /dir2             # 错误时显示完整的回溯信息
+```
+
+### 实际示例
+
+**备份验证：**
+
+```bash
+# 比较原始数据和备份，并同步差异
+do-compare /important/data /backup/data --sync --sync-direction A2B --overwrite AUTO
+```
+
+**开发工作流：**
+
+```bash
+# 比较项目的两个版本
+do-compare /project/v1 /project/v2 --compare-mode CONTENT
+
+# 哈希所有源文件以进行变更检测
+do-hash -a blake2b -r /src --full-path
+```
+
+## 🔧 高级特性
+
+### 命令行界面
+
+doFolder 提供了全面的命令行工具，具有两种使用模式：
+
+**统一接口：**
+
+```bash
+# 主命令带子命令
+do-folder compare /path/to/dir1 /path/to/dir2 --sync
+do-folder hash -a sha256,md5 file1.txt file2.txt
+
+# 使用 Python 模块
+python -m doFolder compare /source /backup --compare-mode CONTENT
+python -m doFolder hash -a blake2b -r /directory
+```
+
+**直接命令：**
+
+```bash
+# 直接命令快捷方式
+do-compare /path/to/dir1 /path/to/dir2 --sync --overwrite AUTO
+do-hash -a sha256,md5 file1.txt file2.txt --thread-num 8
+```
+
+#### 比较命令特性
+
+- 多种比较模式（SIZE、CONTENT、TIMETAG、TIMETAG_AND_SIZE、IGNORE）
+- 支持双向同步的目录同步
+- 灵活的覆盖策略（A2B、B2A、ASK、AUTO、IGNORE）
+- 相对时间戳格式化
+- 交互式冲突解决
+
+#### 哈希命令特性
+
+- 支持多种哈希算法（SHA 家族、MD5、BLAKE2、SHA3 等）
+- 多线程处理以提高性能
+- 递归目录哈希
+- 带有详细状态的进度跟踪
+- 灵活的输出格式
+
+### 高级哈希系统
+
+doFolder 包含一个具有多个优化级别的复杂哈希系统：
+
+```python
+from doFolder.hashing import (
+    FileHashCalculator,
+    ThreadedFileHashCalculator,
+    ReCalcHashMode,
+    MemoryFileHashManager
+)
+from concurrent.futures import wait
+
+
+# 带缓存的基本计算器
+calculator = FileHashCalculator(
+    algorithm="sha256",
+    useCache=True,
+    reCalcHashMode=ReCalcHashMode.TIMETAG  # 仅在文件修改时重新计算
+)
+
+# 多线程计算器以获得更好性能
+with ThreadedFileHashCalculator(threadNum=8) as threaded_calc:
+    # 并发处理多个文件
+    futures = [threaded_calc.threadedGet(file) for file in file_list]
+    wait(futures)
+    results = [future.result() for future in futures]
+
+# 自定义缓存管理器
+from doFolder.hashing import LfuMemoryFileHashManager
+calculator = FileHashCalculator(
+    cacheManager=LfuMemoryFileHashManager(maxSize=1000)
+)
+```
 
 ### 错误处理模式
 
@@ -175,10 +423,10 @@ doFolder 通过 `UnExistsMode` 提供灵活的错误处理：
 from doFolder import File, UnExistsMode
 
 # 处理不存在文件的不同模式
-file1 = File("missing.txt", unExists=UnExistsMode.ERROR)    # 抛出异常
-file2 = File("missing.txt", unExists=UnExistsMode.WARN)     # 发出警告
-file3 = File("missing.txt", unExists=UnExistsMode.IGNORE)   # 静默处理
-file4 = File("missing.txt", unExists=UnExistsMode.CREATE)   # 如果缺失则创建
+file1 = File("missing.txt", unExistsMode=UnExistsMode.ERROR)    # 引发异常
+file2 = File("missing.txt", unExistsMode=UnExistsMode.WARN)     # 发出警告
+file3 = File("missing.txt", unExistsMode=UnExistsMode.IGNORE)   # 静默处理
+file4 = File("missing.txt", unExistsMode=UnExistsMode.CREATE)   # 如果不存在则创建
 ```
 
 ### 文件系统项目类型
@@ -186,7 +434,7 @@ file4 = File("missing.txt", unExists=UnExistsMode.CREATE)   # 如果缺失则创
 ```python
 from doFolder import ItemType, createItem
 
-# 工厂函数创建适当的对象
+# 用于创建适当对象的工厂函数
 item1 = createItem("./some_path", ItemType.FILE)      # 创建 File 对象
 item2 = createItem("./some_path", ItemType.DIR)       # 创建 Directory 对象
 item3 = createItem("./some_path")                     # 自动检测类型
@@ -194,17 +442,17 @@ item3 = createItem("./some_path")                     # 自动检测类型
 
 ## 🔄 从 v1.x.x 迁移
 
-doFolder v2.x.x 在保持向后兼容性的同时引入了多项改进：
+doFolder v2.x.x 引入了多项改进，同时保持了向后兼容性：
 
-- **增强的路径管理**: 现在使用 Python 内置的 `pathlib`
-- **重命名的类**: `Folder` → `Directory` (保持向后兼容)
-- **灵活的文件创建**: `File` 类可以处理带重定向的目录路径
-- **改进的类型安全**: 整个代码库的完整类型提示
+- **增强的路径管理**：现在使用 Python 内置的 `pathlib`
+- **重命名的类**：`Folder` → `Directory`（保持向后兼容性）
+- **灵活的文件创建**：`File` 类可以处理带重定向的目录路径
+- **改进的类型安全**：整个代码库提供完整的类型提示
 
 ### 迁移示例
 
 ```python
-# v1.x.x 风格 (仍然可用)
+# v1.x.x 风格（仍然有效）
 from doFolder import Folder
 folder = Folder("./my_directory")
 
@@ -212,19 +460,20 @@ folder = Folder("./my_directory")
 from doFolder import Directory
 directory = Directory("./my_directory")
 
-# 两者使用方式完全相同！
+# 两者功能完全相同！
 ```
 
 ## 📚 文档
 
-- **完整的 API 文档**: [https://do-folder.doc.kuankuan.site](https://do-folder.doc.kuankuan.site)
+- **完整 API 文档**: [https://do-folder.doc.kuankuan.site](https://do-folder.doc.kuankuan.site)
+- **命令行界面指南**: [CLI 文档](https://do-folder.doc.kuankuan.site/cli.html)
 - **GitHub 仓库**: [https://github.com/kuankuan2007/do-folder](https://github.com/kuankuan2007/do-folder)
 - **问题跟踪**: [https://github.com/kuankuan2007/do-folder/issues](https://github.com/kuankuan2007/do-folder/issues)
 
 ## 🤝 贡献
 
-欢迎贡献！请随时提交 Pull Request。对于重大更改，请先开启一个 issue 来讨论您想要更改的内容。
+欢迎贡献！请随时提交拉取请求。对于重大更改，请先打开一个问题来讨论您想要更改的内容。
 
 ## 📄 许可证
 
-本项目采用 [MulanPSL-2.0 许可证](./LICENSE) - 详见 LICENSE 文件。
+该项目根据 [MulanPSL-2.0 许可证](./LICENSE) 获得许可 - 有关详细信息，请参阅 LICENSE 文件。
