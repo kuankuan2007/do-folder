@@ -17,13 +17,13 @@ def getShortDisplayNames(  # pylint: disable=too-many-branches
     paths: list[Path],
 ) -> dict[Path, Path]:
     """Generate short display names for paths by resolving conflicts.
-    
+
     When multiple paths have the same filename, returns progressively longer
     path segments until all names are unique.
-    
+
     Args:
         paths: List of Path objects to generate display names for.
-        
+
     Returns:
         Dictionary mapping original paths to their shortened display names.
     """
@@ -175,6 +175,7 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
         help="Display all progress bars in any situation.",
     )
     parser.add_argument("-n", "--thread-num", type=int, default=4)
+    parser.add_argument("--no-progress", action="store_true", help="Show result only")
     util.addConsoleInfo(parser)
 
     args = parser.parse_args(arguments)
@@ -196,6 +197,7 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
         threadNum=args.thread_num,
         fullPath=args.full_path,
         showAll=args.show_all,
+        noProgress=args.no_progress,
     )
 
 
@@ -437,6 +439,7 @@ def _hashCli(  # pylint: disable=too-many-arguments, too-many-locals
     threadNum: int = 4,
     fullPath: bool = False,
     showAll: bool = False,
+    noProgress: bool = False,
 ) -> int:
 
     try:
@@ -464,7 +467,9 @@ def _hashCli(  # pylint: disable=too-many-arguments, too-many-locals
         )
 
         with CalcProgress(
-            consoleController=controller, showRunningOnly=not showAll
+            consoleController=controller,
+            showRunningOnly=not showAll,
+            disable=noProgress,
         ) as progress, _hashing.ThreadedFileHashCalculator(
             threadNum=threadNum
         ) as calculator:
