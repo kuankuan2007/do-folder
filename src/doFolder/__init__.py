@@ -88,11 +88,16 @@ Advanced Features:
 from .fileSystem import (
     File,  # Class for file operations and management
     Directory,  # Class for directory operations and management
-    ItemType,  # Enum defining file system item types (FILE, DIR)
-    UnExistsMode,  # Enum defining behavior when paths don't exist
     Folder,  # Backward-compatible alias for Directory
     createItem,  # Factory function to create File or Directory objects
     isDir,  # Type guard to check if an object is a Directory
+    isFile,  # Type guard to check if an object is a File
+)
+
+# Core enums
+from .enums import (
+    ItemType,  # Enum defining file system item types (FILE, DIR)
+    UnExistsMode,  # Enum defining behavior when paths don't exist
 )
 
 # Enhanced path handling
@@ -117,5 +122,6 @@ __all__ = [
     "Path",
     "createItem",
     "isDir",
+    "isFile",
     "compare",
 ]
