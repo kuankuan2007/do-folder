@@ -8,6 +8,7 @@ Provides comprehensive error handling with configurable behavior modes.
 import sys
 from warnings import warn
 from .enums import ErrorMode
+from . import globalType as _tt
 
 # use exceptiongroup if available, else use ExceptionGroup from the standard library
 if sys.version_info < (3, 11):
@@ -73,7 +74,23 @@ class PathTypeWarning(RuntimeWarning):
     """
 
 
+def addNote(exc: BaseException, note: str):
+    """
+    Add a note to an exception for Python compatibility.
+    Uses add_note() method if available (Python 3.11+).
+    """
+    if hasattr(exc, "add_note"):
+        exc.add_note(note)  # type: ignore # pylint: disable=no-member
 
+
+def getNote(exc: BaseException) -> _tt.Optional[list[str]]:
+    """
+    Get notes from an exception for Python compatibility.
+    Returns __notes__ attribute if available (Python 3.11+).
+    """
+    if hasattr(exc, "__notes__"):
+        return exc.__notes__  # type: ignore # pylint: disable=no-member
+    return None
 
 
 def unintended(
@@ -96,9 +113,9 @@ def unintended(
             - `ErrorMode.WARN`: Issue a warning and continue execution (default).
             - `ErrorMode.ERROR`: Raise an exception and halt execution.
             - `ErrorMode.IGNORE`: Silently ignore the situation and continue.
-        warnClass (type, optional): The warning class to use when mode is WARN. 
+        warnClass (type, optional): The warning class to use when mode is WARN.
             Defaults to `RuntimeWarning`.
-        errorClass (type, optional): The exception class to raise when mode is ERROR. 
+        errorClass (type, optional): The exception class to raise when mode is ERROR.
             Defaults to `RuntimeError`.
 
     Raises:

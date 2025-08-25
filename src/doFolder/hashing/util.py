@@ -11,7 +11,7 @@ constants, and utility functions used throughout the hashing subsystem.
 
 from dataclasses import dataclass
 from .. import globalType as _tt, fileSystem as _fs
-from ..enums import ReCalcHashMode
+from ..enums import ReCalcHashMode, TaskStatus
 
 
 #: Default cryptographic hash algorithm used throughout the module

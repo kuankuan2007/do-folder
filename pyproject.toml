@@ -35,8 +35,9 @@ Issues = "https://github.com/kuankuan2007/do-folder/issues"
 Documentation = "https://do-folder.doc.kuankuan.site"
 
 [project.scripts]
-do-compare = "doFolder.cli:compareCli"
-do-folder = "doFolder.__main__:main"
+do-hash = "doFolder.scripts:doHash"
+do-compare = "doFolder.scripts:doCompare"
+do-folder = "doFolder.scripts:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "doFolder.__pkginfo__.__version__" }

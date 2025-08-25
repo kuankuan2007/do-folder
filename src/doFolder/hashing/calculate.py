@@ -25,6 +25,16 @@ from .util import (
 )
 from .executor import ProgressController
 
+def unsupport(algorithms: _tt.Iterable[Algorithm]):
+    """Check for unsupported hash algorithms.
+    
+    Args:
+        algorithms: Iterable of algorithm names to check.
+        
+    Returns:
+        Tuple of unsupported algorithm names.
+    """
+    return tuple(i for i in algorithms if i not in hashlib.algorithms_available)
 
 def _calc(
     content: _tt.Iterable[bytes],

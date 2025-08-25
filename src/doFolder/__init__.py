@@ -6,7 +6,8 @@ doFolder is a powerful, intuitive, and cross-platform file system management lib
 that provides a high-level, object-oriented interface for working with files and
 directories. It simplifies common file operations such as creating, moving, copying,
 deleting, and comparing files and directories while offering advanced features like
-hashing, content manipulation, and directory tree operations.
+hashing, content manipulation, directory tree operations, and comprehensive
+command-line tools for file system management.
 
 Key Features:
     * **Object-oriented Design**: Work with files and directories as Python objects
@@ -17,6 +18,8 @@ Key Features:
     * **Directory Tree Operations**: Navigate and manipulate directory structures
     * **File Comparison**: Compare files and directories with various comparison modes
     * **Hash Support**: Generate and verify file hashes for integrity checking
+    * **Command-line Interface**: Comprehensive CLI tools for file operations
+    * **High-performance Hashing**: Multi-threaded hashing with caching support
     * **Error Handling**: Comprehensive error modes for different use cases
     * **Type Safety**: Full type hints for better IDE support and code reliability
 
@@ -39,6 +42,14 @@ Quick Start:
     >>> # Copy and move files
     >>> backup_file = new_file.copy("./backup/")
     >>> new_file.move("./archive/")
+    >>>
+    >>> # Use hashing functionality
+    >>> file_hash = new_file.hash()  # Default algorithm
+    >>> sha256_hash = new_file.hash("sha256")  # Specific algorithm
+    >>>
+    >>> # Command-line usage examples:
+    >>> # do-folder compare /path/to/dir1 /path/to/dir2
+    >>> # do-folder hash -a sha256 file1.txt file2.txt
 
 Main Classes:
     * **File**: Represents a file in the file system with methods for content
@@ -61,6 +72,10 @@ Advanced Features:
     * **File Comparison**: The `compare` module provides comprehensive comparison
       capabilities for files and directories.
     * **Hash Operations**: Built-in support for file hashing and verification.
+    * **Command-line Tools**: The `cli` module provides powerful command-line
+      utilities for file comparison, hashing, and other operations.
+    * **High-performance Hashing**: The `hashing` module offers multi-threaded
+      hash calculation with caching and various algorithms.
     * **Flexible Error Handling**: Configurable error modes for different
       scenarios.
     * **Path Utilities**: Advanced path manipulation and formatting functions.
@@ -84,11 +99,14 @@ from .fileSystem import (
 from .path import Path  # Extended Path class with additional utilities
 
 # File and directory comparison module
-from . import compare  # Comprehensive comparison utilities
+from . import compare, hashing  # Comprehensive comparison utilities
 
 # Package metadata
 from .__pkginfo__ import __version__, __pkgname__  # Package version information
 
+# Short aliases for convenient command-line usage
+D = Directory  # pylint: disable=invalid-name
+F = File  # pylint: disable=invalid-name
 
 __all__ = [
     "File",
@@ -100,5 +118,4 @@ __all__ = [
     "createItem",
     "isDir",
     "compare",
-    "__version__",
 ]
