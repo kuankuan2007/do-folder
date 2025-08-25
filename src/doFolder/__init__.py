@@ -84,11 +84,14 @@ from .fileSystem import (
 from .path import Path  # Extended Path class with additional utilities
 
 # File and directory comparison module
-from . import compare  # Comprehensive comparison utilities
+from . import compare, hashing  # Comprehensive comparison utilities
 
 # Package metadata
 from .__pkginfo__ import __version__, __pkgname__  # Package version information
 
+# Short aliases for convenient command-line usage
+D = Directory  # pylint: disable=invalid-name
+F = File  # pylint: disable=invalid-name
 
 __all__ = [
     "File",
@@ -100,5 +103,4 @@ __all__ = [
     "createItem",
     "isDir",
     "compare",
-    "__version__",
 ]
