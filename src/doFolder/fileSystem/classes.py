@@ -1,114 +1,25 @@
-"""File system operations module for doFolder.
+"""
+File system item classes and abstractions.
 
-This module provides comprehensive classes and functions for managing files and directories.
-It includes the main FileSystemItemBase abstract class and its concrete implementations
-File and Directory, along with utility functions for creating and identifying file system items.
-
-Main classes:
-- FileSystemItemBase: Abstract base class for all file system items
-- File: Represents files with read/write/JSON operations
-- Directory: Represents directories with creation/traversal operations
-
-Main functions:
-- createItem(): Factory function to create File or Directory objects
-- isFile()/isDir(): Type checking functions
+This module defines abstract and concrete classes for representing files and directories,
+providing a unified interface for file system operations like reading, writing, copying,
+moving, and hashing.
 """
 
-# pylint: disable=too-many-lines
-
+import io as _io
 import shutil as _shutil
 import json as _json
-import io as _io
 from deprecated import deprecated as _deprecated
 
-from .path import Path, relativePathableFormat
-from .enums import ErrorMode, UnExistsMode, ItemType
-
-from . import (
+from .. import (
     exception as _ex,
     globalType as _tt,
     hashing as _hash,
-)  # pylint: disable=unused-import
+)
+from ..enums import ErrorMode, UnExistsMode, ItemType
 
-
-def isDir(target: "FileSystemItemBase") -> " _tt.TypeIs[Directory]":
-    """Check if target is a directory.
-
-    Args:
-        target (FileSystemItemBase): The file system item to check.
-
-    Returns:
-        bool: True if target is a directory, False otherwise.
-    """
-    return target.itemType == ItemType.DIR
-
-
-def isFile(target: "FileSystemItemBase") -> " _tt.TypeIs[File]":
-    """Check if target is a file.
-
-    Args:
-        target (FileSystemItemBase): The file system item to check.
-
-    Returns:
-        bool: True if target is a file, False otherwise.
-    """
-    return target.itemType == ItemType.FILE
-
-
-def createItem(
-    path: _tt.Pathable,
-    unExistsMode: UnExistsMode = UnExistsMode.WARN,
-    errorMode: ErrorMode = ErrorMode.WARN,
-    toAbsolute: bool = False,
-    exceptType: _tt.Union[ItemType, None] = None,
-) -> "FileSystemItem":
-    """Create a file system item based on the given path.
-
-    Automatically detects whether the path points to a file or directory and creates
-    the appropriate object. If the path doesn't exist, behavior is controlled by
-    unExistsMode parameter.
-
-    Args:
-        path (Pathable): Path to the file or directory.
-        unExistsMode (UnExistsMode, optional): Behavior when path doesn't exist. Defaults to WARN.
-        errorMode (ErrorMode, optional): Error handling mode. Defaults to WARN.
-        toAbsolute (bool, optional): Convert path to absolute. Defaults to False.
-        exceptType (ItemType, optional): Expected item type (FILE or DIR). Defaults to None.
-
-    Returns:
-        FileSystemItem: File or Directory object based on the path type.
-    """
-    path = Path(path)
-    if path.exists():
-        if path.is_file():
-            return File(path, unExistsMode, errorMode, toAbsolute)
-        if path.is_dir():
-            return Directory(path, unExistsMode, errorMode, toAbsolute)
-        _ex.unintended(
-            f"Path {path} is not a file or directory",
-            errorMode,
-            errorClass=_ex.PathTypeError,
-            warnClass=_ex.PathTypeWarning,
-        )
-    return (Directory if exceptType == ItemType.DIR else File)(
-        path, unExistsMode, errorMode, toAbsolute, exceptType=exceptType
-    )
-
-
-def toFileSystemItem(fr: "FileSystemItemLike") -> "FileSystemItem":
-    """Convert FileSystemItemLike to FileSystemItem.
-
-    Args:
-        fr (FileSystemItemLike): Object to convert (path or FileSystemItem).
-
-    Returns:
-        FileSystemItem: FileSystemItem object.
-
-    .. versionadded:: 2.2.0
-    """
-    if isinstance(fr, FileSystemItemBase):
-        return fr
-    return createItem(fr)
+from . import tools as _tools  # pylint: disable=cyclic-import
+from ..path import Path, relativePathableFormat
 
 
 class FileSystemItemBase(_tt.abc.ABC):
@@ -252,7 +163,7 @@ class FileSystemItemBase(_tt.abc.ABC):
         .. versionchanged:: 2.2.3
             This method determines the object type rather than the actual path type.
         """
-        return isFile(self)
+        return _tools.isFile(self)
 
     def isDir(self):
         """Check if this object is a Directory.
@@ -260,7 +171,7 @@ class FileSystemItemBase(_tt.abc.ABC):
         .. versionchanged:: 2.2.3
             This method determines the object type rather than the actual path type.
         """
-        return isDir(self)
+        return _tools.isDir(self)
 
     @property
     def state(self):
@@ -531,7 +442,7 @@ class Directory(FileSystemItemBase):
         Yields:
             FileSystemItem: FileSystemItem objects for each child.
         """
-        yield from map(createItem, self.path.iterdir())
+        yield from map(_tools.createItem, self.path.iterdir())
 
     def __getitem__(self, name: str) -> "FileSystemItem":
         """Get child by name.
@@ -571,7 +482,7 @@ class Directory(FileSystemItemBase):
         if not hideDirectory:
             yield self
         for item in self:
-            if isDir(item):
+            if _tools.isDir(item):
                 yield from item.recursiveTraversal(hideDirectory)
             else:
                 yield item
@@ -633,7 +544,7 @@ class Directory(FileSystemItemBase):
             existsErrorMode=existsErrorMode,
             errorMode=errorMode,
         )
-        if not isFile(res):
+        if not _tools.isFile(res):
             raise _ex.PathTypeError(f"{target} is not a file.")
         return res
 
@@ -663,7 +574,7 @@ class Directory(FileSystemItemBase):
             existsErrorMode=existsErrorMode,
             errorMode=errorMode,
         )
-        if not isDir(res):
+        if not _tools.isDir(res):
             raise _ex.PathTypeError(f"{target} is not a directory.")
         return res
 
@@ -721,7 +632,7 @@ class Directory(FileSystemItemBase):
             errorMode=errorMode,
             exceptType=ItemType.FILE,
         )
-        if not isFile(res):
+        if not _tools.isFile(res):
             raise _ex.PathTypeError(f"{target} is not a file.")
 
         return res
@@ -753,7 +664,7 @@ class Directory(FileSystemItemBase):
             errorMode=errorMode,
             exceptType=ItemType.FILE,
         )
-        if not isDir(res):
+        if not _tools.isDir(res):
             raise _ex.PathTypeError(f"{target} is not a file.")
         return res
 
@@ -886,7 +797,7 @@ class Directory(FileSystemItemBase):
         """
         _target = self.path / target
 
-        return createItem(
+        return _tools.createItem(
             _target,
             unExistsMode=unExistsMode,
             exceptType=exceptType,
@@ -947,7 +858,7 @@ class Directory(FileSystemItemBase):
         .. versionadded:: 2.2.5
         """
         target = self.path.__truediv__(other)
-        return createItem(
+        return _tools.createItem(
             target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
 
@@ -972,10 +883,10 @@ class Directory(FileSystemItemBase):
         .. versionadded:: 2.2.5
         """
         target = self.path.__truediv__(other)
-        res = createItem(
+        res = _tools.createItem(
             target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
-        if isFile(res):
+        if _tools.isFile(res):
             raise _ex.PathTypeError(f"{target} is not a directory.")
         return res
 
@@ -993,7 +904,7 @@ class Directory(FileSystemItemBase):
         .. versionadded:: 2.2.5
         """
         target = self.path.__rtruediv__(other)
-        return createItem(
+        return _tools.createItem(
             target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
 
@@ -1014,13 +925,22 @@ class Directory(FileSystemItemBase):
         .. versionadded:: 2.2.5
         """
         target = self.path.__rtruediv__(other)
-        res = createItem(
+        res = _tools.createItem(
             target, unExistsMode=UnExistsMode.ERROR, exceptType=ItemType.DIR
         )
-        if isFile(res):
+        if _tools.isFile(res):
             raise _ex.PathTypeError(f"{target} is not a directory.")
         return res
 
+
+@_deprecated("Use Directory instead", version="2.0")
+class Folder(Directory):
+    """Legacy alias for Directory class.
+
+    .. deprecated:: 2.0
+       Use Directory class instead. This class exists only for migration
+       convenience from version 1.0.
+    """
 
 FileSystemItem = _tt.Union[File, Directory]
 """Union type representing either a File or Directory object.
@@ -1036,13 +956,3 @@ Includes path strings/objects and existing FileSystemItem instances.
 
 .. versionadded:: 2.2.0
 """
-
-
-@_deprecated("Use Directory instead", version="2.0")
-class Folder(Directory):
-    """Legacy alias for Directory class.
-
-    .. deprecated:: 2.0
-       Use Directory class instead. This class exists only for migration
-       convenience from version 1.0.
-    """
