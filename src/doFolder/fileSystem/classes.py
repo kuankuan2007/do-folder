@@ -4,6 +4,8 @@ File system item classes and abstractions.
 This module defines abstract and concrete classes for representing files and directories,
 providing a unified interface for file system operations like reading, writing, copying,
 moving, and hashing.
+
+.. versionadded:: 2.3.0
 """
 
 import io as _io
