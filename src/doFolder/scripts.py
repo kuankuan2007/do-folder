@@ -6,10 +6,30 @@ from the command line or programmatically.
 """
 
 import os
+import sys
 from .cli import compareCli, mainCli, hashCli
+from . import __pkginfo__
+import shutil
 
 
-def _callCli(cli):
+def _getBestInvocationForThisPython() -> str:
+    """
+    Try to figure out the best way to invoke the current Python.
+
+    This function was copied from the `pip` package. It attempts to
+    determine the most appropriate command to invoke the current Python
+    """
+    exe = sys.executable
+    exe_name = os.path.basename(exe)
+
+    found_executable = shutil.which(exe_name)
+    if found_executable and os.path.samefile(found_executable, exe):
+        return exe_name
+
+    return exe
+
+
+def _callCli(cli, *args, **kwargs):
     """
     Execute a CLI function and exit with its return code.
 
@@ -19,7 +39,7 @@ def _callCli(cli):
     Note:
         This function calls sys.exit() and will terminate the program.
     """
-    os._exit(cli())
+    os._exit(cli(*args, **kwargs))
 
 
 def doCompare():
@@ -33,6 +53,21 @@ def doCompare():
 
 
 def main():
+    """
+    the __main__ entry point for the doFolder CLI application.
+    """
+
+    _callCli(
+        mainCli,
+        prog=(
+            _getBestInvocationForThisPython() + " -m " + __pkginfo__.__package__
+            if __pkginfo__.__package__
+            else "do-folder"
+        ),
+    )
+
+
+def doFolder():
     """
     Main entry point for the doFolder CLI application.
 

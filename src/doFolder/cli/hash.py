@@ -110,7 +110,7 @@ class AlgorithmFilesAction(util.argparse.Action):
         getattr(namespace, self.dest).append((algorithms, files))
 
 
-def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
+def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int:
     """Main CLI function for hash calculation commands.
 
     Args:
@@ -121,6 +121,7 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
     """
     parser = util.argparse.ArgumentParser(
         description="Calculate hash values for files using specified algorithms",
+        prog=prog,
     )
     util.addVersionInfo(parser)
 
@@ -186,6 +187,11 @@ def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None):
         groupsFromArgs.extend(args.algorithm_groups)
     if args.default_groups:
         groupsFromArgs.append(([_hashing.DEFAULT_HASH_ALGORITHM], args.default_groups))
+
+    fileFlag = any(len(files) > 0 for _, files in groupsFromArgs)
+
+    if not fileFlag:
+        parser.error("No files specified, nothing to do. Use -h for help.")
 
     return _hashCli(
         groupsFromArgs,

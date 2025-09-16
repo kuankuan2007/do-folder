@@ -26,13 +26,15 @@ from .. import (
 )
 
 
-def compareCli(arguments: _tt.Optional[_tt.Sequence[str]] = None) -> int:
+def compareCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int:
     """
     The implementation of the command-line tool `do-compare`
     You can also use it as `do-folder compare` or `python3 -m doFolder compare`.
     """
 
-    parser = util.argparse.ArgumentParser(description="Compare two filesystem items.")
+    parser = util.argparse.ArgumentParser(
+        description="Compare two filesystem items.", prog=prog
+    )
 
     util.addVersionInfo(parser)
 

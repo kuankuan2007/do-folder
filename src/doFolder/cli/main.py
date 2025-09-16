@@ -14,7 +14,7 @@ from .hash import hashCli
 SUBCOMMANDS = {"compare": compareCli, "hash": hashCli}
 
 
-def mainCli(arguments: _tt.Optional[_tt.Sequence[str]] = None) -> int:
+def mainCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int:
     """
     The unified entry point for the doFolder CLI application.
 
@@ -33,9 +33,11 @@ def mainCli(arguments: _tt.Optional[_tt.Sequence[str]] = None) -> int:
         - `do-folder compare path1 path2`
         - `python -m doFolder compare path1 path2`
     """
-    parser = util.argparse.ArgumentParser()
+    parser = util.argparse.ArgumentParser(prog=prog)
     util.addVersionInfo(parser)
-    parser.add_argument("subcommand", help="something to do", choices=["compare"])
+    parser.add_argument(
+        "subcommand", help="something to do", choices=list(SUBCOMMANDS.keys())
+    )
 
     parser.add_argument(
         "args", nargs=util.argparse.REMAINDER, help="arguments for the subcommand"
@@ -45,4 +47,6 @@ def mainCli(arguments: _tt.Optional[_tt.Sequence[str]] = None) -> int:
     if args.subcommand not in SUBCOMMANDS:
         parser.error(f"Unknown subcommand: {args.subcommand}")
 
-    return SUBCOMMANDS[args.subcommand](args.args)
+    return SUBCOMMANDS[args.subcommand](
+        args.args, prog=prog + " " + args.subcommand if prog else None
+    )

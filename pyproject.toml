@@ -37,7 +37,7 @@ Documentation = "https://do-folder.doc.kuankuan.site"
 [project.scripts]
 do-hash = "doFolder.scripts:doHash"
 do-compare = "doFolder.scripts:doCompare"
-do-folder = "doFolder.scripts:main"
+do-folder = "doFolder.scripts:doFolder"
 
 [tool.setuptools.dynamic]
 version = { attr = "doFolder.__pkginfo__.__version__" }
