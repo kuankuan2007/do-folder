@@ -7,9 +7,10 @@ from the command line or programmatically.
 
 import os
 import sys
+import shutil
+
 from .cli import compareCli, mainCli, hashCli
 from . import __pkginfo__
-import shutil
 
 
 def _getBestInvocationForThisPython() -> str:
@@ -18,13 +19,15 @@ def _getBestInvocationForThisPython() -> str:
 
     This function was copied from the `pip` package. It attempts to
     determine the most appropriate command to invoke the current Python
+
+    Thank you to the team that maintains pip. Your code is very useful.
     """
     exe = sys.executable
-    exe_name = os.path.basename(exe)
+    exeName = os.path.basename(exe)
 
-    found_executable = shutil.which(exe_name)
-    if found_executable and os.path.samefile(found_executable, exe):
-        return exe_name
+    foundExecutable = shutil.which(exeName)
+    if foundExecutable and os.path.samefile(foundExecutable, exe):
+        return exeName
 
     return exe
 
