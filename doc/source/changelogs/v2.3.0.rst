@@ -1,27 +1,40 @@
 Version 2.3.0
 =============
 
+- Python 3.8 is no longer supported; minimum requirement is now Python 3.9.
+- Command Line Interface (CLI)
+
+  - Two usage modes: unified interface (``do-folder`` / ``python3 -m doFolder``) and direct commands (``do-compare``, ``do-hash``)
+  - Global options: ``-v/--version``, ``-vv/--full-version``, ``-w/--console-width``, ``--no-color``, ``-m/--mute-warning``, ``-t/--traceback``, ``-h/--help``
+  - Subcommands:
+    - compare: compare or synchronize files/directories; modes (``SIZE``, ``CONTENT``, ``TIMETAG``, ``TIMETAG_AND_SIZE``, ``IGNORE``); ``--sync``; ``--sync-direction``; ``--overwrite``; ``--create-root``; ``--relative-timestamp``
+    - hash: calculate hashes; ``-a/--algorithms``; ``-d/--allow-directory``; ``-r/--recursive``; ``-n/--thread-num``; ``-s/--show-all``; ``--no-progress``; ``-p/--to-absolute``; ``-f/--full-path``; ``-A/--disable-aggregate-algos``
+  - Exit codes: ``0`` success; ``1`` general error; ``2`` argument error
+
+  See the full CLI guide: :doc:`Command Line Interface <../cli>`.
+  
 - Module Structure Improvements
 
-  - **Hashing Module Refactoring**: The `hashing` module has been completely restructured from a standalone submodule into a comprehensive subpackage.
+  - Hashing Module Refactoring: The `hashing` module has been completely restructured from a standalone submodule into a comprehensive subpackage.
     
     - Better organization for hash-related functionality
     - More granular module management capabilities
     - Improved code maintainability and structure
     - Enhanced extensibility for future hash algorithms and utilities
 
-  - **Command-Line Interface Enhancement**: Introduced a new `cli` subpackage along with a dedicated `scripts` module to provide robust command-line interface functionality.
+  - Command-Line Interface Enhancement: Introduced a new `cli` subpackage along with a dedicated `scripts` module to provide robust command-line interface functionality.
     
     - Direct terminal interaction with doFolder capabilities
     - Scriptable automation options for batch operations
     - Enhanced user experience for system integrations
     - Support for command-line workflows and pipelines
 
-  - **Convenient Class Aliases**: Added `doFolder.D` and `doFolder.F` as shorthand aliases for the `Directory` and `File` classes respectively.
+  - Convenient Class Aliases: Added `doFolder.D` and `doFolder.F` as shorthand aliases for the `Directory` and `File` classes respectively.
     
     - More concise and developer-friendly syntax
     - Reduced code verbosity in common operations
     - Full compatibility with existing implementations
     - Improved developer productivity and code readability
+
 
 For more details, please refer to the `changelog <https://github.com/kuankuan2007/do-folder/compare/v2.2.4...v2.3.0>`__.

@@ -68,7 +68,7 @@ Installation and Requirements
 System Requirements
 -------------------------------
 
-* Python 3.8 or higher
+* Python 3.9 or higher (Python 3.8 was not supported since v2.3.0)
 * Cross-platform compatibility (Windows, macOS, Linux)
 
 Installation
@@ -234,8 +234,10 @@ Built-in hashing functionality supports content integrity verification:
    if critical_file.hash() == original_hash:
        print("File integrity maintained")
 
-Migration Considerations
+Update and Migration
 =============================
+
+See the :doc:`changelog <../changelog>` for a detailed list of changes and improvements in each version.
 
 Version 2.x Migration
 -------------------------------
@@ -251,24 +253,6 @@ The doFolder library version 2.x introduces several architectural improvements w
 **Pathlib Integration**
    The underlying path handling system now utilizes Python's standard ``pathlib`` module for improved robustness and performance.
 
-Existing code using version 1.x remains functional:
-
-.. code-block:: python
-
-   # Legacy code continues to work
-   from doFolder import Folder
-   legacy_folder = Folder("./data")
-   
-   # Recommended approach for new code
-   from doFolder import Directory
-   modern_directory = Directory("./data")
-
-Version History
-=============================
-
-.. toctree::
-
-   ./changelog
 
 Development and Contribution
 =============================
