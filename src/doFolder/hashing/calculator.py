@@ -117,12 +117,12 @@ class FileHashCalculator:
     fileIOMinSize: int = DEFAULT_FILE_IO_MIN_SIZE
     algorithm: str = DEFAULT_HASH_ALGORITHM
     cacheManager: cache.FileHashCacheManagerBase = field(
-        default=cache.DefaultNoneFileHashManager
+        default=cache.DEFAULT_NONE_FILE_HASH_MANAGER
     )
 
     def __post_init__(self):
         """Initialize cache manager if not provided."""
-        if self.cacheManager is cache.DefaultNoneFileHashManager and self.useCache:
+        if self.cacheManager is cache.DEFAULT_NONE_FILE_HASH_MANAGER and self.useCache:
             self.cacheManager = cache.MemoryFileHashManager()
 
     def get(

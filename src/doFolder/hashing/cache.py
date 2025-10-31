@@ -272,4 +272,4 @@ class LfuMemoryFileHashManager(FileHashCacheManagerBase):
             self._cache.popitem(last=False)
 
 
-DefaultNoneFileHashManager = NullFileHashManager()
+DEFAULT_NONE_FILE_HASH_MANAGER = NullFileHashManager()
