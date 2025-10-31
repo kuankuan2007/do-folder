@@ -26,6 +26,7 @@ dependencies = [
     "typing_extensions>=4.10.0",
     "deprecated",
     "rich",
+    "types-Deprecated",
 ]
 license-files = ["LICENSE"]
 

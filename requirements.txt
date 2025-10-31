@@ -2,7 +2,4 @@ deprecated
 types-Deprecated
 typing_extensions>=4.10.0
 exceptiongroup
-pytest
-pylint>=4.0.0
-build
 rich
