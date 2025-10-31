@@ -304,13 +304,13 @@ class CalcTask:
             Dictionary of formatted fields for progress bar display.
         """
         return {
-            "_now": util.SizeFormat(self.feature.progress),
-            "_total": util.SizeFormat(self.feature.total),
+            "_now": util.SIZE_FORMATS(self.feature.progress),
+            "_total": util.SIZE_FORMATS(self.feature.total),
             "_percent": f"{self.feature.percent:0.2f}%",
             "_file": self.file.path,
-            "_speed": util.SizeSpeedFormat(self.feature.speed),
+            "_speed": util.SIZE_SPEED_FORMATS(self.feature.speed),
             "_statue": STATUE_MAP[self.feature.statue],
-            "_remainTime": util.TimeFormat(self.feature.remain),
+            "_remainTime": util.TIME_FORMATS(self.feature.remain),
         }
 
 

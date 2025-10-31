@@ -193,11 +193,11 @@ class UnitShow:
         return f"{value}{lastUnit}"
 
 
-TimeFormat = UnitShow([(1, "s"), (60, "min"), (60, "h"), (24, "d")])
-SizeFormat = UnitShow(
+TIME_FORMATS = UnitShow([(1, "s"), (60, "min"), (60, "h"), (24, "d")])
+SIZE_FORMATS = UnitShow(
     [(1, "B"), (1024, "KB"), (1024, "MB"), (1024, "GB"), (1024, "TB"), (1024, "PB")],
 )
-SizeSpeedFormat = UnitShow(
+SIZE_SPEED_FORMATS = UnitShow(
     [
         (1, "B/s"),
         (1024, "KB/s"),
