@@ -88,6 +88,18 @@ def compareCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> 
         default="AUTO",
         help="Relative timestamp format: AUTO for automatic detection, ALWAYS for always relative, NEVER for absolute timestamps. Default is AUTO, and using the -r parameter alone indicates ALWAYS.",
     )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Do not prompt for confirmation if the sync plan is not pending and no overwrite is needed",
+    )
+    parser.add_argument(
+        "-Y",
+        "--yes-overwrite",
+        action="store_true",
+        help="Do not prompt for confirmation if the sync plan is not pending even if an overwrite is needed",
+    )
     util.addConsoleInfo(parser)
 
     args = parser.parse_args(arguments)
@@ -107,6 +119,7 @@ def compareCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> 
         overwrite=args.overwrite,
         createRoot=args.create_root,
         relativeTimestamp=args.relative_timestamp,
+        comfirm="Y" if args.yes_overwrite else "y" if args.yes else None,
     )
 
 
@@ -215,6 +228,7 @@ def _compareCli(
     overwrite: _tt.Literal["ASK", "A2B", "B2A", "AUTO"] = "ASK",
     createRoot: bool = False,
     relativeTimestamp: _tt.Literal["ALWAYS", "NEVER", "AUTO"] = "AUTO",
+    comfirm: _tt.Literal[None, "y", "Y"] = None,
 ) -> (
     int
 ):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements, too-many-arguments
@@ -431,6 +445,8 @@ def _compareCli(
             return any(DiffPlan.isPending(getPlan(diff)) for diff in diffList)
 
         isFirst = True
+        askToConfirm = 0
+
         while True:
             if not isFirst:
                 showTable()
@@ -439,8 +455,13 @@ def _compareCli(
             pendingFlag = hasPending()
             editFlag = False
             if not pendingFlag:
-                editFlag = not util.rich.prompt.Confirm.ask(
-                    "[green]Is these sync plan all correct? [/green]",
+                askToConfirm += 1
+                editFlag = (
+                    False
+                    if askToConfirm == 1 and comfirm is not None
+                    else not util.rich.prompt.Confirm.ask(
+                        "[green]Is these sync plan all correct? [/green]",
+                    )
                 )
                 if not editFlag:
                     overwriteList: list[_fs.Path] = []
@@ -455,9 +476,13 @@ def _compareCli(
                         )
                         for item in overwriteList:
                             controller.console.print(f"[blue]'{item}'[/blue]")
-                        editFlag = not util.rich.prompt.Confirm.ask(
-                            "[green]Do you want to continue? [/green]",
-                            default=True,
+                        editFlag = (
+                            False
+                            if askToConfirm == 1 and comfirm == "Y"
+                            else not util.rich.prompt.Confirm.ask(
+                                "[green]Do you want to continue? [/green]",
+                                default=False,
+                            )
                         )
                     if not editFlag:
                         break

@@ -102,6 +102,10 @@ Options
                         NEVER: Always show absolute timestamps
                         AUTO: Automatically choose based on time difference
 
+   -y, --yes            Do not prompt for confirmation if the sync plan is not pending and no overwrite is needed
+
+   -Y, --yes-overwrite   Do not prompt for confirmation if the sync plan is not pending even if an overwrite is needed
+
 Examples
 ^^^^^^^^
 
