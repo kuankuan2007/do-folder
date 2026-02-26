@@ -6,30 +6,11 @@ from the command line or programmatically.
 """
 
 import os
-import sys
-import shutil
 
-from .cli import compareCli, mainCli, hashCli
+from .cli import compareCli, mainCli, hashCli, util
 from . import __pkginfo__
 
 
-def _getBestInvocationForThisPython() -> str:
-    """
-    Try to figure out the best way to invoke the current Python.
-
-    This function was copied from the `pip` package. It attempts to
-    determine the most appropriate command to invoke the current Python
-
-    Thank you to the team that maintains pip. Your code is very useful.
-    """
-    exe = sys.executable
-    exeName = os.path.basename(exe)
-
-    foundExecutable = shutil.which(exeName)
-    if foundExecutable and os.path.samefile(foundExecutable, exe):
-        return exeName
-
-    return exe
 
 
 def _callCli(cli, *args, **kwargs):
@@ -63,7 +44,7 @@ def main():
     _callCli(
         mainCli,
         prog=(
-            _getBestInvocationForThisPython() + " -m " + __pkginfo__.__package__
+            util.getBestInvocationForThisPython() + " -m " + __pkginfo__.__package__
             if __pkginfo__.__package__
             else "do-folder"
         ),
