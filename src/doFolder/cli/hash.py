@@ -335,7 +335,7 @@ class CalcProgress(util.rich.progress.Progress):
         transient: bool = False,
         redirect_stdout: bool = True,
         redirect_stderr: bool = True,
-        get_time: _tt.Callable[[], float] | None = None,
+        get_time: _tt.Union[_tt.Callable[[], float], None] = None,
         disable: bool = False,
         expand: bool = False,
         showRunningOnly: bool = False,
