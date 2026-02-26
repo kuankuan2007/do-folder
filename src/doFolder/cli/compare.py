@@ -225,7 +225,7 @@ def _compareCli(
     compareMode: _compare.CompareMode = _compare.CompareMode.TIMETAG_AND_SIZE,
     sync: bool = False,
     syncDirection: _tt.Literal["ASK", "A2B", "B2A", "BOTH"] = "ASK",
-    overwrite: _tt.Literal["ASK", "A2B", "B2A", "AUTO"] = "ASK",
+    overwrite: _tt.Literal["ASK", "A2B", "B2A", "AUTO", "IGNORE"] = "ASK",
     createRoot: bool = False,
     relativeTimestamp: _tt.Literal["ALWAYS", "NEVER", "AUTO"] = "AUTO",
     comfirm: _tt.Literal[None, "y", "Y"] = None,
@@ -375,6 +375,10 @@ def _compareCli(
             ):
                 if syncDirection == "ASK":
                     return DiffPlan.PENDING_OVERWRITE
+                if overwrite == "IGNORE":
+                    return DiffPlan.IGNORE
+                if overwrite == "ASK":
+                    return DiffPlan.PENDING_OVERWRITE
                 if syncDirection == "BOTH":
                     if overwrite == "A2B":
                         return DiffPlan.A2B_OVERWRITE
@@ -386,17 +390,17 @@ def _compareCli(
                             if diff.path1.stat().st_mtime > diff.path2.stat().st_mtime
                             else DiffPlan.B2A_OVERWRITE
                         )
-                    if overwrite == "IGNORE":
-                        return DiffPlan.IGNORE
                     return DiffPlan.PENDING_OVERWRITE
 
                 if syncDirection == "A2B":
                     if overwrite in ("A2B", "AUTO"):
                         return DiffPlan.A2B_OVERWRITE
+
                     return DiffPlan.PENDING_OVERWRITE
                 if syncDirection == "B2A":
                     if overwrite in ("B2A", "AUTO"):
                         return DiffPlan.B2A_OVERWRITE
+
                     return DiffPlan.PENDING_OVERWRITE
 
             return DiffPlan.PENDING
