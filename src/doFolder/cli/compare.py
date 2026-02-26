@@ -26,7 +26,9 @@ from .. import (
 )
 
 
-def compareCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int:
+def compareCli(
+    arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=util.defaultProg
+) -> int:
     """
     The implementation of the command-line tool `do-compare`
     You can also use it as `do-folder compare` or `python3 -m doFolder compare`.

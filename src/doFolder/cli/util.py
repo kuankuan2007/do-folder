@@ -6,6 +6,9 @@ including version information handling and argument parser configuration.
 """
 
 # pylint: disable=unused-import
+import os
+import sys
+import shutil
 import argparse
 from dataclasses import dataclass, field
 
@@ -207,3 +210,23 @@ SIZE_SPEED_FORMATS = UnitShow(
         (1024, "PB/s"),
     ]
 )
+
+defaultProg = os.path.basename(sys.argv[0])
+
+def getBestInvocationForThisPython() -> str:
+    """
+    Try to figure out the best way to invoke the current Python.
+
+    This function was copied from the `pip` package. It attempts to
+    determine the most appropriate command to invoke the current Python
+
+    Thank you to the team that maintains pip. Your code is very useful.
+    """
+    exe = sys.executable
+    exeName = os.path.basename(exe)
+
+    foundExecutable = shutil.which(exeName)
+    if foundExecutable and os.path.samefile(foundExecutable, exe):
+        return exeName
+
+    return exe

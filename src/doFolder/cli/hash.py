@@ -110,7 +110,9 @@ class AlgorithmFilesAction(util.argparse.Action):
         getattr(namespace, self.dest).append((algorithms, files))
 
 
-def hashCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int:
+def hashCli(
+    arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=util.defaultProg
+) -> int:
     """Main CLI function for hash calculation commands.
 
     Args:

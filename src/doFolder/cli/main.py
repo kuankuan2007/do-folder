@@ -14,7 +14,9 @@ from .hash import hashCli
 SUBCOMMANDS = {"compare": compareCli, "hash": hashCli}
 
 
-def mainCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int:
+def mainCli(
+    arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=util.defaultProg
+) -> int:
     """
     The unified entry point for the doFolder CLI application.
 
@@ -48,5 +50,10 @@ def mainCli(arguments: _tt.Optional[_tt.Sequence[str]] = None, prog=None) -> int
         parser.error(f"Unknown subcommand: {args.subcommand}")
 
     return SUBCOMMANDS[args.subcommand](
-        args.args, prog=prog + " " + args.subcommand if prog else None
+        args.args,
+        prog=(
+            prog + " " + args.subcommand
+            if prog != util.defaultProg
+            else util.defaultProg
+        ),
     )
