@@ -7,9 +7,15 @@ import hashlib
 import sys
 from concurrent import futures
 import time
+import subprocess
+import os
+
+testLocal = os.getenv("DOFOLDER_TEST_NO_INSTALL", "0") == "1"
+showDetail = os.getenv("DOFOLDER_TEST_SHOW_DETAIL", "0") == "1"
+keepTemp = os.getenv("DOFOLDER_TEST_KEEP_TEMP", "0") == "1"
 
 # Check if the script is run with the --no-install flag
-if "--no-install" in sys.argv:
+if testLocal:
     pkgDir = Path(__file__).parent.parent
 
     print(f"\nUse Directory from local: {pkgDir}")
@@ -18,7 +24,9 @@ if "--no-install" in sys.argv:
 
 import doFolder
 import doFolder.hashing
-
+import doFolder.scripts
+import doFolder.cli.main
+import doFolder.env
 
 root: Path
 
@@ -49,7 +57,7 @@ def setup_module(module):
 
 
 def teardown_module(module):
-    if "--keep-temp" in sys.argv:
+    if keepTemp:
         print(f"\nKeeping temporary directory at {root}")
     else:
         shutil.rmtree(root)
@@ -756,3 +764,272 @@ class TestCompareSystem:
             and delete_diff.toFlat()[-1].diffType
             == doFolder.compare.DifferenceType.NOT_EXISTS
         ), f"Deletion difference detection failed: missing file should show NOT_EXISTS difference type but didn't. Check difference detection for missing files."
+
+
+class TestCli:
+    entry = [
+        sys.executable,
+        "-m",
+        "src.doFolder" if testLocal else "doFolder",
+    ]
+    devNull = subprocess.DEVNULL if not showDetail else None
+
+    def showOutput(self, out: str):
+        if showDetail:
+            print("stdout:")
+            print(out)
+
+    def normalizeOutput(self, out: str) -> str:
+        return out.replace("\n", "").replace("\r", "").replace(" ", "")
+
+    def test_cli_callable(self):
+        with subprocess.Popen(
+            [*self.entry, "--help"],
+            stdout=self.devNull,
+        ) as p:
+            p.wait()
+            assert p.returncode == 0, "CLI is not callable"
+
+    def test_each_subcommand(self):
+        for name, _cmd in doFolder.cli.main.SUBCOMMANDS.items():
+            with subprocess.Popen(
+                [
+                    *self.entry,
+                    name,
+                    "--help",
+                ],
+                stdout=self.devNull,
+            ) as p:
+                p.wait()
+                assert p.returncode == 0, f"Subcommand {name} is not callable"
+
+    def test_cli_version_info(self):
+        with subprocess.Popen(
+            [*self.entry, "-vv", "--no-color"],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Version info output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Version info command failed"
+
+            assert self.normalizeOutput(out) == self.normalizeOutput(
+                f"{doFolder.__pkginfo__.__pkgname__} {doFolder.__pkginfo__.__version__} From Python {doFolder.env.PYTHON_VERSION_STR}({doFolder.env.PYTHON_EXECUTABLE})"
+            ), "Version info not found in output"
+
+    def test_compare_api(self):
+        path = root / "test_compare_api"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+        d1 = d.createDir("test1")
+
+        content1 = randomFileContent(1024 * 1024)
+        content2 = randomFileContent(1024 * 1024)
+        content3 = randomFileContent(1024 * 1024)
+        content4 = randomFileContent(1024 * 1024)
+        content5 = randomFileContent(1024 * 1024)
+
+        d1t1 = d1.createFile("t1")
+        d1t2 = d1.createFile("t2")
+        d1t1.content = content1.encode("utf8")
+        d1t2.content = content2.encode("utf8")
+
+        d1.copy(path / "test2")
+        d2 = d // "test2"
+
+        with subprocess.Popen(
+            [*self.entry, "compare", str(path / "test1"), str(path / "test2")],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Compare command 1 output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Compare command 1 failed"
+            assert self.normalizeOutput(out) == self.normalizeOutput(
+                "No differences found."
+            )
+
+        d2t3 = d2.createFile("t3")
+        d2t1 = d2 / "t1"
+        assert doFolder.isFile(d2t1)
+        d2t3.content = content3.encode("utf8")
+
+        d2t1.content = content4.encode("utf8")
+
+        with subprocess.Popen(
+            [*self.entry, "compare", str(path / "test1"), str(path / "test2")],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Compare command 2 output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Compare command 2 failed"
+
+            assert self.normalizeOutput(
+                "There are 2 differences found"
+            ) in self.normalizeOutput(out), "Compare command 2 output is not correct"
+            assert d2t1.content == content4.encode(
+                "utf8"
+            ), "Compare command 4 worked unexpectedly, t1 should not be overwritten"
+
+        with subprocess.Popen(
+            [
+                *self.entry,
+                "compare",
+                str(path / "test1"),
+                str(path / "test2"),
+                "--sync",
+                "--sync-direction",
+                "B2A",
+                "--overwrite",
+                "IGNORE",
+                "-y",
+            ],
+            stdout=self.devNull,
+        ) as p:
+            p.wait()
+            assert p.returncode == 0, "Compare command 3 failed"
+            assert (d1 / "t3").exists(), "Compare command 3 is not working"
+            assert d2t1.content == content4.encode(
+                "utf8"
+            ), "Compare command 4 worked unexpectedly, t1 should not be overwritten"
+        d2.createFile("t4").content = content5.encode("utf8")
+
+        with subprocess.Popen(
+            [
+                *self.entry,
+                "compare",
+                str(path / "test1"),
+                str(path / "test2"),
+                "--sync",
+                "--sync-direction",
+                "A2B",
+                "--overwrite",
+                "A2B",
+                "-Y",
+            ],
+            stdout=self.devNull,
+        ) as p:
+            p.wait()
+            assert p.returncode == 0, "Compare command 4 failed"
+            assert d2t1.content == content1.encode(
+                "utf8"
+            ), "Compare command 4 is not working"
+            assert not d1.get(
+                "t4", unExistsMode=doFolder.UnExistsMode.IGNORE
+            ).exists(), (
+                "Compare command 4 worked unexpectedly, t4 should not be created"
+            )
+
+    def test_hash_api(self):
+        path = root / "test_hash_api"
+        d = doFolder.Directory(path, unExistsMode=doFolder.UnExistsMode.CREATE)
+        d1 = d.createDir("test1")
+
+        content1 = randomFileContent(1024 * 1024)
+        content2 = randomFileContent(1024 * 1024)
+        content3 = randomFileContent(1024 * 1024)
+        content4 = randomFileContent(1024 * 1024)
+        sha256_1 = hashlib.sha256(content1.encode("utf8")).hexdigest()
+        sha256_2 = hashlib.sha256(content2.encode("utf8")).hexdigest()
+        sha256_3 = hashlib.sha256(content3.encode("utf8")).hexdigest()
+        sha256_4 = hashlib.sha256(content4.encode("utf8")).hexdigest()
+
+        md5_1 = hashlib.md5(content1.encode("utf8")).hexdigest()
+        md5_2 = hashlib.md5(content2.encode("utf8")).hexdigest()
+
+        d1t1 = d1.createFile("t1")
+        d1t2 = d1.createFile("t2")
+        d1t5 = d1.createFile("t5")
+        d1.createDir("t3").createFile("t4").content = content3.encode("utf8")
+
+        d1t1.content = content1.encode("utf8")
+        d1t2.content = content2.encode("utf8")
+        d1t5.content = content4.encode("utf8")
+
+        with subprocess.Popen(
+            [
+                *self.entry,
+                "hash",
+                str(path / "test1" / "t1"),
+                str(path / "test1" / "t2"),
+            ],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Hash command 1 output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Hash command 1 failed"
+
+            assert self.normalizeOutput(f"sha256 {sha256_1}") in self.normalizeOutput(
+                out
+            ) and self.normalizeOutput(f"sha256 {sha256_2}") in self.normalizeOutput(
+                out
+            ), "Hash command 1 output is not correct"
+
+        with subprocess.Popen(
+            [*self.entry, "hash", str(path / "test1"), "-d"],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Hash command 2 output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Hash command 2 failed"
+
+            assert self.normalizeOutput(f"sha256 {sha256_1}") in self.normalizeOutput(
+                out
+            ) and self.normalizeOutput(f"sha256 {sha256_2}") in self.normalizeOutput(
+                out
+            ), "Hash command 2 output is not correct"
+            assert self.normalizeOutput(
+                f"sha256 {sha256_3}"
+            ) not in self.normalizeOutput(
+                out
+            ), "Hash command 2 output should not include t3/t4"
+        with subprocess.Popen(
+            [*self.entry, "hash", str(path / "test1"), "-d", "-r"],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Hash command 3 output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Hash command 3 failed"
+
+            assert (
+                self.normalizeOutput(f"sha256 {sha256_1}") in self.normalizeOutput(out)
+                and self.normalizeOutput(f"sha256 {sha256_2}")
+                in self.normalizeOutput(out)
+                and self.normalizeOutput(f"sha256 {sha256_3}")
+                in self.normalizeOutput(out)
+            ), "Hash command 3 output is not correct"
+        with subprocess.Popen(
+            [
+                *self.entry,
+                "hash",
+                str(path / "test1" / "t1"),
+                str(path / "test1" / "t5"),
+                "-a",
+                "md5",
+                str(path / "test1" / "t1"),
+                str(path / "test1" / "t2"),
+            ],
+            stdout=subprocess.PIPE,
+        ) as p:
+            p.wait()
+            assert p.stdout is not None, "Hash command 4 output is None"
+            out = p.stdout.read().decode("utf8")
+            self.showOutput(out)
+            assert p.returncode == 0, "Hash command 4 failed"
+
+            assert (
+                self.normalizeOutput(f"sha256 {sha256_4}") in self.normalizeOutput(out)
+                and self.normalizeOutput(f"sha256 {sha256_1}")
+                in self.normalizeOutput(out)
+                and self.normalizeOutput(f"md5 {md5_1}") in self.normalizeOutput(out)
+                and self.normalizeOutput(f"md5 {md5_2}") in self.normalizeOutput(out)
+            ), "Hash command 4 output is not correct"
