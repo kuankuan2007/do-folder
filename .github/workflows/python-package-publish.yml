@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: "3.14"
 
       - name: Build release distributions
         run: |
@@ -89,39 +89,26 @@ jobs:
           find dist -name "*.tar.gz" | while read file; do
             filename=$(basename "$file")
             echo "file=$file" >> $GITHUB_OUTPUT
-            echo "filename=$filename" >> $GITHUB_OUTPUT
           done
         id: set-tar-gz-file
-
-      - name: Upload tar.gz files to GitHub Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.set-tar-gz-file.outputs.file }}
-          asset_name: ${{ steps.set-tar-gz-file.outputs.filename }}
-          asset_content_type: application/octet-stream
-
       - name: find wheel file
         run: |
           find dist -name "*.whl" | while read file; do
             filename=$(basename "$file")
             echo "file=$file" >> $GITHUB_OUTPUT
-            echo "filename=$filename" >> $GITHUB_OUTPUT
           done
         id: set-wheel-file
-
       - name: Upload tar.gz files to GitHub Release
-        uses: actions/upload-release-asset@v1
+        uses: kuankuan2007/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.set-wheel-file.outputs.file }}
-          asset_name: ${{ steps.set-wheel-file.outputs.filename }}
-          asset_content_type: application/octet-stream
-
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          release_id: ${{ github.event.release.id }}
+          files: |
+            ${{ steps.set-tar-gz-file.outputs.file }}
+            ${{ steps.set-wheel-file.outputs.file }}
   doc-build:
     runs-on: ubuntu-latest
 
@@ -130,7 +117,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: "3.14"
 
       - name: Build Doc
         run: |
@@ -157,21 +144,20 @@ jobs:
         with:
           name: release-docs
           path: temp/
-      - name: find zip file
+      - name: find doc file
         run: |
           find temp -name "*.zip" | while read file; do
             filename=$(basename "$file")
             echo "file=$file" >> $GITHUB_OUTPUT
-            echo "filename=$filename" >> $GITHUB_OUTPUT
           done
         id: set-zip-file
 
       - name: Upload zip files to GitHub Release
-        uses: actions/upload-release-asset@v1
+        uses: kuankuan2007/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ steps.set-zip-file.outputs.file }}
-          asset_name: ${{ steps.set-zip-file.outputs.filename }}
-          asset_content_type: application/octet-stream
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.event.repository.name }}
+          release_id: ${{ github.event.release.id }}
+          files: ${{ steps.set-zip-file.outputs.file }}
