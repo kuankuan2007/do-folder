@@ -84,22 +84,8 @@ jobs:
         with:
           name: release-dists
           path: dist/
-      - name: find tar.gz file
-        run: |
-          find dist -name "*.tar.gz" | while read file; do
-            filename=$(basename "$file")
-            echo "file=$file" >> $GITHUB_OUTPUT
-          done
-        id: set-tar-gz-file
-      - name: find wheel file
-        run: |
-          find dist -name "*.whl" | while read file; do
-            filename=$(basename "$file")
-            echo "file=$file" >> $GITHUB_OUTPUT
-          done
-        id: set-wheel-file
-      - name: Upload tar.gz files to GitHub Release
-        uses: kuankuan2007/upload-release-asset@v1
+      - name: upload build results to GitHub release asset
+        uses: kuankuan2007/upload-release-asset@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -107,8 +93,8 @@ jobs:
           repo: ${{ github.event.repository.name }}
           release_id: ${{ github.event.release.id }}
           files: |
-            ${{ steps.set-tar-gz-file.outputs.file }}
-            ${{ steps.set-wheel-file.outputs.file }}
+            dist/*.tar.gz
+            dist/*.whl
   doc-build:
     runs-on: ubuntu-latest
 
@@ -144,20 +130,13 @@ jobs:
         with:
           name: release-docs
           path: temp/
-      - name: find doc file
-        run: |
-          find temp -name "*.zip" | while read file; do
-            filename=$(basename "$file")
-            echo "file=$file" >> $GITHUB_OUTPUT
-          done
-        id: set-zip-file
-
-      - name: Upload zip files to GitHub Release
-        uses: kuankuan2007/upload-release-asset@v1
+      - name: upload documentation to GitHub release asset
+        uses: kuankuan2007/upload-release-asset@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           owner: ${{ github.repository_owner }}
           repo: ${{ github.event.repository.name }}
           release_id: ${{ github.event.release.id }}
-          files: ${{ steps.set-zip-file.outputs.file }}
+          files: |
+            temp/*.zip
