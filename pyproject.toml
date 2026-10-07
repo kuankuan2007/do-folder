@@ -13,8 +13,10 @@ dynamic = ["version"]
 
 classifiers = [
     "Natural Language :: English",
+    "Natural Language :: Chinese (Simplified)",
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -25,6 +27,13 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: System :: Filesystems",
+    "Topic :: Utilities",
+    "Topic :: System :: Archiving",
+    "Typing :: Typed",
+    "License :: OSI Approved :: Mulan Permissive Software License v2 (MulanPSL-2.0)",
 ]
 keywords = ["folder", "file", "manage", "filesystem", 'directory']
 dependencies = [
