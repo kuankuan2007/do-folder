@@ -5,6 +5,8 @@ This module provides essential Python runtime environment information and consta
 used throughout the doFolder library. It exposes Python version details, interpreter
 path, and runtime features like GIL (Global Interpreter Lock) status for compatibility
 checking and environment-aware operations.
+
+.. versionadded:: 2.3.0
 """
 
 # pylint: disable=unused-import, no-name-in-module

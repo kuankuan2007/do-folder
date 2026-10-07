@@ -4,6 +4,8 @@ Executor module providing progress-aware thread pool execution capabilities.
 This module implements a thread pool executor with built-in progress tracking
 functionality. It includes progress controllers, future wrappers, and utility
 functions for managing asynchronous tasks with progress reporting.
+
+.. versionadded:: 2.3.0
 """
 
 import time

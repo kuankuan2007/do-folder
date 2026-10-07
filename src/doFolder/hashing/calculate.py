@@ -4,7 +4,8 @@ Core cryptographic hash calculation functions for files and byte content.
 This module provides the fundamental hash calculation functionality with support
 for multiple algorithms, chunked processing, and both memory and streaming I/O modes.
 
-.. versionadded:: 2.3.0
+.. versionchanged:: 2.3.0
+    hashing.calculate is now a subpackage module, instead of a standalone submodule.
 """
 
 import hashlib

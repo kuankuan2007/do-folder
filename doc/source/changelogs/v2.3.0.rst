@@ -1,40 +1,79 @@
 Version 2.3.0
 =============
 
-- Python 3.8 is no longer supported; minimum requirement is now Python 3.9.
-- Command Line Interface (CLI)
+- **Python Version Support**
+
+  - Python 3.8 is no longer supported; minimum requirement is now Python 3.9.
+  - Added support for Python 3.14.
+
+- **Command Line Interface (CLI)**
 
   - Two usage modes: unified interface (``do-folder`` / ``python3 -m doFolder``) and direct commands (``do-compare``, ``do-hash``)
   - Global options: ``-v/--version``, ``-vv/--full-version``, ``-w/--console-width``, ``--no-color``, ``-m/--mute-warning``, ``-t/--traceback``, ``-h/--help``
   - Subcommands:
-    - compare: compare or synchronize files/directories; modes (``SIZE``, ``CONTENT``, ``TIMETAG``, ``TIMETAG_AND_SIZE``, ``IGNORE``); ``--sync``; ``--sync-direction``; ``--overwrite``; ``--create-root``; ``--relative-timestamp``
+    - compare: compare or synchronize files/directories; modes (``SIZE``, ``CONTENT``, ``TIMETAG``, ``TIMETAG_AND_SIZE``, ``IGNORE``); ``--sync``; ``--sync-direction``; ``--overwrite`` (including new ``IGNORE`` option); ``--create-root``; ``--relative-timestamp``; ``-y/--yes``; ``-Y/--yes-overwrite``
     - hash: calculate hashes; ``-a/--algorithms``; ``-d/--allow-directory``; ``-r/--recursive``; ``-n/--thread-num``; ``-s/--show-all``; ``--no-progress``; ``-p/--to-absolute``; ``-f/--full-path``; ``-A/--disable-aggregate-algos``
   - Exit codes: ``0`` success; ``1`` general error; ``2`` argument error
+  - Improved command-line prompts with accurate program names
+  - Fixed compatibility issue where ``do-hash`` command failed on Python 3.9
 
   See the full CLI guide: :doc:`Command Line Interface <../cli>`.
   
-- Module Structure Improvements
+- **Module Structure Improvements**
 
-  - Hashing Module Refactoring: The `hashing` module has been completely restructured from a standalone submodule into a comprehensive subpackage.
+  - **FileSystem Module Decomposition**: The ``fileSystem`` module has been decomposed from a single module into a comprehensive sub-package structure.
+    
+    - Better organization for file system-related functionality
+    - More granular module management capabilities
+    - Improved code maintainability and structure
+    - Enhanced extensibility for future file system utilities
+
+  - **Hashing Module Refactoring**: The ``hashing`` module has been completely restructured from a standalone submodule into a comprehensive subpackage.
     
     - Better organization for hash-related functionality
     - More granular module management capabilities
     - Improved code maintainability and structure
     - Enhanced extensibility for future hash algorithms and utilities
 
-  - Command-Line Interface Enhancement: Introduced a new `cli` subpackage along with a dedicated `scripts` module to provide robust command-line interface functionality.
+  - **Command-Line Interface Enhancement**: Introduced a new ``cli`` subpackage along with a dedicated ``scripts`` module to provide robust command-line interface functionality.
     
     - Direct terminal interaction with doFolder capabilities
     - Scriptable automation options for batch operations
     - Enhanced user experience for system integrations
     - Support for command-line workflows and pipelines
+    - Refactored CLI functions to use default program name from util module
 
-  - Convenient Class Aliases: Added `doFolder.D` and `doFolder.F` as shorthand aliases for the `Directory` and `File` classes respectively.
+  - **Convenient Class Aliases**: Added ``doFolder.D`` and ``doFolder.F`` as shorthand aliases for the ``Directory`` and ``File`` classes respectively.
     
     - More concise and developer-friendly syntax
     - Reduced code verbosity in common operations
     - Full compatibility with existing implementations
     - Improved developer productivity and code readability
 
+  - **Code Quality Improvements**: Renamed formatting constants and ``DefaultNoneFileHashManager`` to ``DEFAULT_NONE_FILE_HASH_MANAGER`` for better readability and consistency.
 
-For more details, please refer to the `changelog <https://github.com/kuankuan2007/do-folder/compare/v2.2.4...v2.3.0>`__.
+- **Bug Fixes**
+
+  - Fixed path processing logic in ``FileSystemItemBase`` class to ensure that the original path is returned when ``toAbsolute`` is set to ``False``.
+  - Fixed type annotations in various modules for better compatibility with Python 3.9 and earlier versions.
+
+- **Testing and Development Workflow**
+
+  - Added parallel test support to pytest using the ``xdist`` plugin for faster test execution.
+  - Added comprehensive test logic for CLI functionality.
+  - Added support for environment variables to configure pytest options.
+  - Unified testing workflow dependencies on Windows.
+  - Updated Python version matrix to include Python 3.14.
+  - Upgraded to pylint 4.0 for improved code quality checks.
+  - Updated GitHub Actions dependencies to latest versions (``actions/checkout``, ``actions/setup-python``, ``actions/download-artifact``).
+  - Switched to ``kuankuan2007/upload-release-asset@v1`` for release asset uploads.
+
+- **Documentation**
+
+  - Updated and enhanced CLI documentation with comprehensive usage patterns, global options, and command examples.
+  - Added console width option in utilities to enhance output formatting.
+  - Renamed ``requirements_doc.txt`` to ``requirements-doc.txt`` for consistency.
+  - Removed ``.readthedocs.yaml`` configuration file.
+  - Updated ksphinx version to 0.2.2.
+
+For more details, please refer to the `changelog <https://github.com/kuankuan2007/do-folder/compare/v2.2.5...v2.3.0>`__.

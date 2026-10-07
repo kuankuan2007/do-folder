@@ -5,7 +5,8 @@ This module defines abstract and concrete classes for representing files and dir
 providing a unified interface for file system operations like reading, writing, copying,
 moving, and hashing.
 
-.. versionadded:: 2.3.0
+.. versionchanged:: 2.3.0
+    fileSystem.classes is now a subpackage module, instead of a standalone submodule.
 """
 
 import io as _io
@@ -392,8 +393,6 @@ class Directory(FileSystemItemBase):
     Provides comprehensive directory operations including creating, deleting, copying,
     moving, and content management. Supports nested operations through path traversal
     and recursive iteration.
-
-    .. versionadded:: 2.0.0
 
     .. versionchanged:: 2.1.0
         Directory now inherits directly from FileSystemItemBase instead of File.
@@ -935,11 +934,11 @@ class Directory(FileSystemItemBase):
         return res
 
 
-@_deprecated("Use Directory instead", version="2.0")
+@_deprecated("Use Directory instead", version="2.0.0")
 class Folder(Directory):
     """Legacy alias for Directory class.
 
-    .. deprecated:: 2.0
+    .. deprecated:: 2.0.0
        Use Directory class instead. This class exists only for migration
        convenience from version 1.0.
     """

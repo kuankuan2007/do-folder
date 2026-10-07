@@ -4,7 +4,8 @@ Utility functions for file system operations.
 This module provides helper functions for creating file system items, type checking,
 and converting between different file system representations.
 
-.. versionadded:: 2.3.0
+.. versionchanged:: 2.3.0
+    fileSystem.tools is now a subpackage module, instead of a standalone submodule.
 """
 
 from .. import (
@@ -12,14 +13,12 @@ from .. import (
     globalType as _tt,
 )
 
-from . import classes as _classes
+from . import classes as _classes  # pylint: disable=cyclic-import
 from ..enums import ErrorMode, ItemType, UnExistsMode
 from ..path import Path
 
-from . import classes as _classes  # pylint: disable=cyclic-import
 
-
-def isDir(target: "_classes.FileSystemItemBase") -> " _tt.TypeIs[_classes.Directory]":
+def isDir(target: "_classes.FileSystemItemBase") -> "_tt.TypeIs[_classes.Directory]":
     """Check if target is a directory.
 
     Args:
@@ -31,7 +30,7 @@ def isDir(target: "_classes.FileSystemItemBase") -> " _tt.TypeIs[_classes.Direct
     return target.itemType == _classes.ItemType.DIR
 
 
-def isFile(target: "_classes.FileSystemItemBase") -> " _tt.TypeIs[_classes.File]":
+def isFile(target: "_classes.FileSystemItemBase") -> "_tt.TypeIs[_classes.File]":
     """Check if target is a file.
 
     Args:

@@ -3,6 +3,8 @@ Utility functions and constants for the doFolder CLI module.
 
 This module provides common utilities used across different CLI components,
 including version information handling and argument parser configuration.
+
+.. versionadded:: 2.3.0
 """
 
 # pylint: disable=unused-import

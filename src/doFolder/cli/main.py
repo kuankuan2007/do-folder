@@ -3,6 +3,8 @@ Main CLI entry point for the doFolder package.
 
 This module provides the unified command-line interface that routes
 to various subcommand implementations.
+
+.. versionadded:: 2.3.0
 """
 
 from .. import globalType as _tt

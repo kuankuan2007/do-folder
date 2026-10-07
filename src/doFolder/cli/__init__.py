@@ -8,6 +8,8 @@ like comparing directories and files.
 Available CLI Functions:
     - compareCli: Command-line interface for folder/file comparison
     - mainCli: Main CLI dispatcher for all subcommands
+
+.. versionadded:: 2.3.0
 """
 
 from .compare import compareCli

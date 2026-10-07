@@ -3,6 +3,8 @@ Script entry points for the doFolder package.
 
 This module provides the main entry points for executing doFolder commands
 from the command line or programmatically.
+
+.. versionadded:: 2.3.0
 """
 
 import os

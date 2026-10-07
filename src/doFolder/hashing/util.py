@@ -4,7 +4,8 @@ Utility types, constants, and data structures for the hashing package.
 This module defines common data types like FileHashResult, default configuration
 constants, and utility functions used throughout the hashing subsystem.
 
-.. versionadded:: 2.3.0
+.. versionchanged:: 2.3.0
+    hashing.util is now a subpackage module, instead of a standalone submodule.
 """
 
 # pylint: disable=unused-import

@@ -3,6 +3,8 @@ Enumeration definitions for doFolder file system operations and configurations.
 
 This module defines comprehensive enums that control behavior across the doFolder library,
 including error handling modes, file system item types, comparison strategies, and hash recalculation policies.
+
+.. versionadded:: 2.1.2
 """
 
 from enum import Enum, Flag, auto
@@ -45,6 +47,8 @@ class CompareModeFlag(Flag):
     """
     Individual comparison criteria flags that can be combined using bitwise operations.
     These flags form the building blocks for comprehensive file and directory comparison strategies.
+
+    .. versionadded:: 2.2.0
     """
 
     TIMETAG = auto()
@@ -56,6 +60,8 @@ class CompareMode(Enum):
     """
     Predefined comparison strategies for file and directory comparison operations.
     Combines individual comparison flags to provide commonly used comparison modes with optimized performance.
+
+    .. versionadded:: 2.2.0
     """
 
     TIMETAG = CompareModeFlag.TIMETAG
@@ -69,6 +75,8 @@ class DifferenceType(Enum):
     """
     Categorizes the types of differences detected during file system item comparisons.
     Used by comparison operations to classify and report specific types of discrepancies between items.
+
+    .. versionadded:: 2.2.0
     """
 
     FILE_DIFFERENCE = "file_difference"
@@ -81,6 +89,8 @@ class ReCalcHashMode(Enum):
     """
     Controls when file hash values should be recalculated during hash-based operations.
     Optimizes performance by determining hash computation frequency based on file modification timestamps.
+
+    .. versionadded:: 2.2.3
     """
 
     TIMETAG = "TIME_TAG"
@@ -89,7 +99,10 @@ class ReCalcHashMode(Enum):
 
 
 class TaskStatus(Enum):
-    """Enumeration representing the status of a task during execution."""
+    """Enumeration representing the status of a task during execution.
+
+    .. versionadded:: 2.3.0
+    """
     WAITING = "waiting"
     RUNNING = "running"
     COMPLETED = "completed"

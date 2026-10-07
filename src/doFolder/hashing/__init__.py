@@ -20,6 +20,7 @@ from .cache import (
     MemoryFileHashManager,
     NullFileHashManager,
     LfuMemoryFileHashManager,
+    DEFAULT_NONE_FILE_HASH_MANAGER,
 )
 from .calculate import calc, multipleFileHash, fileHash, unsupport
 from .calculator import FileHashCalculator, ThreadedFileHashCalculator
@@ -43,6 +44,7 @@ __all__ = [
     "MemoryFileHashManager",
     "NullFileHashManager",
     "LfuMemoryFileHashManager",
+    "DEFAULT_NONE_FILE_HASH_MANAGER",
     # Core calculation functions
     "calc",
     "fileHash",
@@ -65,4 +67,6 @@ __all__ = [
     "normalizeAlgorithms",
     # Enums
     "ReCalcHashMode",
+    # Executor
+    "FutureWithProgress",
 ]

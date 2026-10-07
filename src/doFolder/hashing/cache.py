@@ -4,7 +4,8 @@ File hash cache management systems for persistent and in-memory result storage.
 This module provides abstract and concrete implementations of cache managers that
 can store and retrieve FileHashResult objects to avoid redundant hash calculations.
 
-.. versionadded:: 2.3.0
+.. versionchanged:: 2.3.0
+    hashing.cache is now a subpackage module, instead of a standalone submodule.
 """
 
 from collections import OrderedDict as _OrderedDict
@@ -273,3 +274,7 @@ class LfuMemoryFileHashManager(FileHashCacheManagerBase):
 
 
 DEFAULT_NONE_FILE_HASH_MANAGER = NullFileHashManager()
+"""Default cache manager instance that disables caching.
+
+.. versionadded:: 2.3.0
+"""

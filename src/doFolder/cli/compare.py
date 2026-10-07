@@ -1,5 +1,5 @@
 """
-Define the CLI for doFolder.
+Define the CLI for do-compare command.
 
 .. versionadded:: 2.3.0
 """

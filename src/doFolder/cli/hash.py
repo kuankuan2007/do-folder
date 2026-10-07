@@ -2,6 +2,8 @@
 
 This module provides command-line interface for calculating hash values of files
 using various algorithms with support for progress tracking and parallel processing.
+
+.. versionadded:: 2.3.0
 """
 
 import time

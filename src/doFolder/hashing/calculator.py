@@ -5,7 +5,8 @@ This module provides FileHashCalculator and ThreadedFileHashCalculator classes
 that offer intelligent caching, configurable recalculation policies, and
 parallel processing for efficient batch file hashing operations.
 
-.. versionadded:: 2.3.0
+.. versionchanged:: 2.3.0
+    hashing.calculator is now a subpackage module, instead of a standalone submodule.
 """
 
 from dataclasses import dataclass, field

@@ -112,6 +112,10 @@ from .__pkginfo__ import __version__, __pkgname__  # Package version information
 # Short aliases for convenient command-line usage
 D = Directory  # pylint: disable=invalid-name
 F = File  # pylint: disable=invalid-name
+"""Convenient shorthand aliases for Directory and File classes.
+
+.. versionadded:: 2.3.0
+"""
 
 __all__ = [
     "File",
@@ -124,4 +128,7 @@ __all__ = [
     "isDir",
     "isFile",
     "compare",
+    "hashing",
+    "D",
+    "F",
 ]
